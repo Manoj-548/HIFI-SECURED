@@ -1,5 +1,5 @@
 /* ============================================================================
-   TOKEN SECURED - APP CORE ENGINE WITH ANTI-THEFT CIPHER VAULT & 2FA GUARD
+   TOKEN SECURED - APP CORE ENGINE WITH INDIVIDUAL MULTI-TENANT 2FA ACCOUNTS
    ============================================================================ */
 
 (function () {
@@ -7,9 +7,10 @@
 
   // Application State
   const state = {
+    currentUser: "Manoj-548",
     vaultUnlocked: false,
     failedPasscodeAttempts: 0,
-    tokens: [],
+    userTokensMap: {},
     blockchain: [],
     pendingAlert: null,
     pending2FAAlert: null,
@@ -19,7 +20,6 @@
     }
   };
 
-  // Master Passcode Key (2FA Protected)
   const MASTER_VAULT_PASSCODE = "123456";
 
   // Helper: SHA-256 Hash simulation / Cryptographic string generator
@@ -36,27 +36,38 @@
 
   // Master Vault Lock & Decrypt Handlers
   window.unlockMasterVault = function () {
-    const entered = document.getElementById('masterPasscodeInput').value.trim();
+    const selectedUser = document.getElementById('userAccountSelector')?.value || "Manoj-548";
+    const entered = document.getElementById('masterPasscodeInput')?.value.trim();
+
     if (entered === MASTER_VAULT_PASSCODE) {
+      state.currentUser = selectedUser;
       state.vaultUnlocked = true;
       state.failedPasscodeAttempts = 0;
+
       document.getElementById('masterVaultLockScreen').classList.remove('active');
-      document.getElementById('masterPasscodeInput').value = '';
-      
-      appendBlockchainBlock("VAULT_UNLOCKED", {
-        status: "2FA_AUTHENTICATED",
-        action: "DECRYPTED_TOKEN_VAULT"
+      document.getElementById('activeUserBadge').textContent = selectedUser;
+      document.getElementById('displayActiveUser').textContent = selectedUser;
+      document.getElementById('displayEmailUser').textContent = `${selectedUser.toLowerCase()}@token-secured.io`;
+
+      appendBlockchainBlock("ACCOUNT_AUTHENTICATED", {
+        user: selectedUser,
+        status: "2FA_TOTP_VERIFIED",
+        action: "DECRYPTED_INDIVIDUAL_VAULT"
       });
-      alert("🔓 Vault Unlocked: 2FA Master Passcode verified!");
+
+      renderTokensTable();
+      renderStats();
+      alert(`🔓 Authenticated: Switched to isolated vault for [${selectedUser}]`);
     } else {
       state.failedPasscodeAttempts += 1;
       appendBlockchainBlock("ANTI_THEFT_FAILED_LOGIN", {
+        user: selectedUser,
         attempt: state.failedPasscodeAttempts,
         status: "UNAUTHORIZED_ACCESS_BLOCKED"
       });
 
       if (state.failedPasscodeAttempts >= 3) {
-        alert("⛔ ANTI-THEFT EMERGENCY LOCKOUT: 3 Failed Master Passcode attempts! Security Alert Email sent to account owner.");
+        alert(`⛔ ANTI-THEFT EMERGENCY LOCKOUT: 3 Failed Passcode attempts on account [${selectedUser}]! Security Alert Email dispatched to owner.`);
         state.failedPasscodeAttempts = 0;
       } else {
         alert(`❌ Invalid Master Passcode! Attempts remaining: ${3 - state.failedPasscodeAttempts}`);
@@ -68,6 +79,7 @@
     state.vaultUnlocked = false;
     document.getElementById('masterVaultLockScreen').classList.add('active');
     appendBlockchainBlock("VAULT_LOCKED", {
+      user: state.currentUser,
       status: "SECURITY_ENCRYPTED"
     });
   };
@@ -108,46 +120,55 @@
       prevHash: prevBlock ? prevBlock.hash : "00000000000000000000000000000000",
       hash: generateCryptoHash(type + JSON.stringify(details) + Date.now())
     };
-    state.blockchain.unshift(newBlock); // Latest first
+    state.blockchain.unshift(newBlock);
     saveState();
     renderBlockchain();
   }
 
-  // Load Tokens State
+  // Load User Tokens State
   function loadTokens() {
-    const savedTokens = localStorage.getItem('cipher_tokens');
-    if (savedTokens) {
+    const savedMap = localStorage.getItem('cipher_user_tokens_map');
+    if (savedMap) {
       try {
-        state.tokens = JSON.parse(savedTokens);
+        state.userTokensMap = JSON.parse(savedMap);
       } catch (e) {
-        state.tokens = [];
+        state.userTokensMap = {};
       }
     }
 
-    if (state.tokens.length === 0) {
-      const seedToken = {
-        id: "TK-8942-ALPHA",
-        label: "Production Payment API Access",
-        rawCode: "TK-8942-X9F2-901B-SECRET",
-        maskedCode: "TK-8942-****-****-0x89F",
-        status: "active",
-        createdAt: new Date().toLocaleString(),
-        expiryMinutes: 60,
-        alertLevel: "strict"
-      };
-      state.tokens.push(seedToken);
+    if (!state.userTokensMap["Manoj-548"]) {
+      state.userTokensMap["Manoj-548"] = [
+        {
+          id: "TK-8942-SECURED",
+          label: "Manoj-548 Personal Production API",
+          rawCode: "TK-8942-X9F2-901B-SECRET",
+          maskedCode: "TK-8942-****-****-0x89F",
+          status: "active",
+          createdAt: new Date().toLocaleString(),
+          expiryMinutes: 60,
+          alertLevel: "strict"
+        }
+      ];
       saveState();
     }
   }
 
+  function getActiveUserTokens() {
+    if (!state.userTokensMap[state.currentUser]) {
+      state.userTokensMap[state.currentUser] = [];
+    }
+    return state.userTokensMap[state.currentUser];
+  }
+
   function saveState() {
-    localStorage.setItem('cipher_tokens', JSON.stringify(state.tokens));
+    localStorage.setItem('cipher_user_tokens_map', JSON.stringify(state.userTokensMap));
     localStorage.setItem('cipher_blockchain', JSON.stringify(state.blockchain));
   }
 
   // UI Renderers
   function renderStats() {
-    const invisibleCount = state.tokens.filter(t => t.status === 'active').length;
+    const activeTokens = getActiveUserTokens();
+    const invisibleCount = activeTokens.filter(t => t.status === 'active').length;
     const pendingAlertsCount = (state.pendingAlert ? 1 : 0) + (state.pending2FAAlert ? 1 : 0);
 
     document.getElementById('statInvisibleTokens').textContent = invisibleCount;
@@ -159,23 +180,23 @@
     const tbody = document.getElementById('tokensTableBody');
     if (!tbody) return;
 
-    if (state.tokens.length === 0) {
+    const tokens = getActiveUserTokens();
+
+    if (tokens.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
-            No active tokens created. Click "Generate New Invisible Token" above.
+            No active tokens in vault for [${state.currentUser}]. Click "Generate New Invisible Token" above.
           </td>
         </tr>
       `;
       return;
     }
 
-    tbody.innerHTML = state.tokens.map(token => {
+    tbody.innerHTML = tokens.map(token => {
       let statusBadge = `<span class="badge badge-active"><i class="bi bi-shield-check"></i> Active</span>`;
       if (token.status === 'revoked') {
         statusBadge = `<span class="badge badge-revoked"><i class="bi bi-shield-x"></i> Revoked</span>`;
-      } else if (token.status === 'pending') {
-        statusBadge = `<span class="badge badge-pending"><i class="bi bi-hourglass-split"></i> Pending Confirm</span>`;
       }
 
       return `
@@ -247,10 +268,12 @@
       alertLevel: alertLevel
     };
 
-    state.tokens.unshift(newToken);
+    const userTokens = getActiveUserTokens();
+    userTokens.unshift(newToken);
     saveState();
 
     appendBlockchainBlock("TOKEN_GENERATION", {
+      user: state.currentUser,
       tokenId: tokenId,
       label: label,
       maskedCode: maskedSecret,
@@ -258,7 +281,6 @@
     });
 
     document.getElementById('tokenLabelInput').value = '';
-
     document.getElementById('revealTokenCode').textContent = rawSecret;
     window.openModal('modalReveal');
 
@@ -277,10 +299,11 @@
       timestamp: new Date().toLocaleTimeString()
     };
 
-    document.getElementById('alertDeviceName').textContent = chosenDevice;
+    document.getElementById('alertTargetAccount').textContent = state.currentUser;
     document.getElementById('otpCodeInput').value = '';
 
     appendBlockchainBlock("STOLEN_PASSWORD_2FA_CHALLENGE", {
+      user: state.currentUser,
       device: chosenDevice,
       status: "STOLEN_PASSWORD_BLOCKED_BY_2FA"
     });
@@ -297,17 +320,19 @@
     if (isApproved) {
       const otp = document.getElementById('otpCodeInput').value.trim();
       appendBlockchainBlock("2FA_LOGIN_SUCCESS", {
+        user: state.currentUser,
         device: alertData.device,
         otpVerified: otp || "PASSKEY_AUTH",
         action: "DEVICE_AUTHORIZED"
       });
-      alert(`✅ 2FA Verified: Device [${alertData.device}] authorized successfully! Security alert email dispatched.`);
+      alert(`✅ 2FA Verified: Device [${alertData.device}] authorized for account [${state.currentUser}]!`);
     } else {
       appendBlockchainBlock("2FA_LOGIN_BLOCKED", {
+        user: state.currentUser,
         device: alertData.device,
         action: "ATTACKER_BLOCKED_ACCOUNT_LOCKED"
       });
-      alert(`⛔ ANTI-THEFT LOCKOUT: Attacker attempt from [${alertData.device}] BLOCKED. Account password invalidated & emergency 2FA lock triggered!`);
+      alert(`⛔ ANTI-THEFT LOCKOUT: Attacker attempt from [${alertData.device}] BLOCKED. Account [${state.currentUser}] secured!`);
     }
 
     state.pending2FAAlert = null;
@@ -327,7 +352,8 @@
 
   // Trigger Intentionality Verification Alert HUD
   window.triggerTokenVerifyAlert = function (tokenId) {
-    const token = state.tokens.find(t => t.id === tokenId);
+    const userTokens = getActiveUserTokens();
+    const token = userTokens.find(t => t.id === tokenId);
     if (!token) return;
 
     state.pendingAlert = token;
@@ -339,7 +365,8 @@
 
   // External Share Simulation Button Handler
   window.simulateExternalShareAttempt = function () {
-    const activeToken = state.tokens.find(t => t.status === 'active');
+    const userTokens = getActiveUserTokens();
+    const activeToken = userTokens.find(t => t.status === 'active');
     if (activeToken) {
       window.triggerTokenVerifyAlert(activeToken.id);
     } else {
@@ -354,19 +381,21 @@
 
     if (isApproved) {
       appendBlockchainBlock("INTENTIONALITY_APPROVED", {
+        user: state.currentUser,
         tokenId: token.id,
         action: "USER_EXPLICIT_2FA_CONFIRMATION",
         result: "AUTHORIZED_AND_LOGGED"
       });
-      alert(`✅ Access Granted: Token ${token.id} presentation confirmed as intentional by account owner.`);
+      alert(`✅ Access Granted: Token ${token.id} confirmed as intentional by owner [${state.currentUser}].`);
     } else {
       token.status = 'revoked';
       appendBlockchainBlock("INTENTIONALITY_REJECTED", {
+        user: state.currentUser,
         tokenId: token.id,
         action: "2FA_SECURITY_BLOCK_REVOCATION",
         result: "TOKEN_INSTANTLY_REVOKED"
       });
-      alert(`⛔ SECURITY ALERT: Token ${token.id} was flagged as unintentional or unauthorized and has been INSTANTLY REVOKED.`);
+      alert(`⛔ SECURITY ALERT: Token ${token.id} flagged as unauthorized and INSTANTLY REVOKED.`);
     }
 
     state.pendingAlert = null;
@@ -378,10 +407,12 @@
 
   // Revoke Token Directly
   window.revokeToken = function (tokenId) {
-    const token = state.tokens.find(t => t.id === tokenId);
+    const userTokens = getActiveUserTokens();
+    const token = userTokens.find(t => t.id === tokenId);
     if (token) {
       token.status = 'revoked';
       appendBlockchainBlock("TOKEN_REVOCATION", {
+        user: state.currentUser,
         tokenId: tokenId,
         reason: "MANUAL_REVOCATION_BY_OWNER"
       });
@@ -415,7 +446,7 @@
     renderTokensTable();
     renderBlockchain();
     renderStats();
-    console.log("Token Secured Engine Initialized OK with Anti-Theft Vault Lock");
+    console.log("Token Secured Engine Initialized OK with Individual User Accounts");
   }
 
   if (document.readyState === 'loading') {

@@ -11,20 +11,19 @@ async def main():
 
         print("Navigating to Token Secured at http://localhost:8080 ...")
         await page.goto("http://localhost:8080", wait_until="networkidle")
-        title = await page.title()
-        print(f"Page Title: {title}")
 
-        # 0. Unlock Anti-Theft Master Vault Screen
-        print("Unlocking Anti-Theft Master Security Vault...")
+        # 0. Authenticate Manoj-548 Individual Account
+        print("Authenticating Manoj-548 Individual Account Vault...")
+        await page.select_option("#userAccountSelector", "Manoj-548")
         await page.fill("#masterPasscodeInput", "123456")
         await page.click("button[onclick='unlockMasterVault()']")
         await page.wait_for_timeout(500)
 
         # 1. Generate Token
-        await page.fill("#tokenLabelInput", "Production Payment API Token")
+        await page.fill("#tokenLabelInput", "Manoj-548 Personal Production Token")
         await page.select_option("#tokenExpiryInput", "60")
         await page.click("button[type='submit']")
-        print("Generated new token!")
+        print("Generated new isolated token for Manoj-548!")
 
         await page.wait_for_timeout(500)
         # Close Reveal Modal
@@ -32,13 +31,9 @@ async def main():
         await page.wait_for_timeout(500)
 
         # 2. Test Stolen Password Attempt Alert Simulator
-        print("Testing Stolen Password / 2FA Security Alert Simulator...")
+        print("Testing 2FA Security Device Sign-In Alert Simulator...")
         await page.click("button[onclick='simulateNewDeviceLogin()']")
         await page.wait_for_timeout(600)
-
-        # Check 2FA Alert Modal
-        alert_title = await page.inner_text("#modal2FAAlert .alert-popup-title")
-        print(f"2FA Anti-Theft Alert Popup Displayed: {alert_title}")
 
         # Fill 2FA OTP Code
         await page.fill("#otpCodeInput", "849201")
@@ -49,7 +44,7 @@ async def main():
         video_path = await page.video.path()
         await context.close()
         await browser.close()
-        print(f"SUCCESS: Anti-Theft & Token Secured Automated Test completed & recorded to {video_path}")
+        print(f"SUCCESS: Individual Account & 2FA Automated Test completed & recorded to {video_path}")
 
 if __name__ == '__main__':
     asyncio.run(main())

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Token Secured - 2FA & Anti-Theft Cipher Vault</title>
+  <title>Token Secured - Individual Multi-Tenant 2FA & Anti-Theft Platform</title>
   
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,23 +25,33 @@
   <div id="masterVaultLockScreen" class="modal-overlay active" style="z-index: 9999; background: rgba(5, 7, 12, 0.95); backdrop-filter: blur(20px);">
     <div class="modal-container" style="max-width: 440px; text-align: center;">
       <div style="font-size: 48px; color: var(--primary-cyan); margin-bottom: 8px;">
-        <i class="bi bi-shield-lock-fill"></i>
+        <i class="bi bi-person-badge-fill"></i>
       </div>
-      <h2 style="color: #fff; font-weight: 800;">TOKEN SECURED VAULT</h2>
+      <h2 style="color: #fff; font-weight: 800;">TOKEN SECURED PORTAL</h2>
       <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-        Anti-Theft Zero-Knowledge Encryption Active.<br>Enter 2FA Master Passcode to Decrypt Token Vault.
+        Individual User Account Authentication Active.<br>Sign in to your isolated 2FA cipher vault.
       </p>
 
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label class="form-label">Select Individual Account</label>
+        <select id="userAccountSelector" class="form-select">
+          <option value="Manoj-548" selected>Manoj-548 (Master Owner & Individual Account)</option>
+          <option value="Enterprise-User">Enterprise Client User (Isolated Vault)</option>
+          <option value="Guest-Collaborator">Collaborator Account (Restricted)</option>
+        </select>
+      </div>
+
       <div class="form-group" style="margin-bottom: 16px;">
-        <input type="password" id="masterPasscodeInput" class="form-input" placeholder="Enter 2FA Master Passcode" style="text-align: center; font-size: 20px; letter-spacing: 6px; font-family: var(--font-mono);" required>
+        <label class="form-label">Enter 2FA Master Passcode</label>
+        <input type="password" id="masterPasscodeInput" class="form-input" placeholder="2FA Code" style="text-align: center; font-size: 20px; letter-spacing: 6px; font-family: var(--font-mono);" value="123456" required>
       </div>
 
       <button class="btn btn-primary" style="width: 100%; padding: 14px;" onclick="unlockMasterVault()">
-        <i class="bi bi-key-fill"></i> Decrypt & Unlock Vault
+        <i class="bi bi-shield-lock-fill"></i> Authenticate & Open Account Vault
       </button>
 
       <div style="font-size: 11px; color: var(--text-dim); margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-        <i class="bi bi-lock-fill text-success"></i> Default Passcode: <code>123456</code> (Customizable)
+        <i class="bi bi-lock-fill text-success"></i> 2FA Enforced &bull; Default Code: <code>123456</code>
       </div>
     </div>
   </div>
@@ -56,7 +66,7 @@
         </div>
         <div>
           <div class="brand-title">TOKEN SECURED</div>
-          <div class="brand-subtitle">Anti-Theft 2FA Vault & Blockchain Ledger</div>
+          <div class="brand-subtitle">Individual 2FA Account & Blockchain Vault</div>
         </div>
       </a>
 
@@ -69,20 +79,20 @@
           <i class="bi bi-key-fill"></i> Invisible Tokens
         </button>
         <button class="nav-tab" data-view="2fa" onclick="switchView('2fa')">
-          <i class="bi bi-phone-vibrate-fill"></i> 2FA & Devices
+          <i class="bi bi-person-vcard-fill"></i> Account 2FA
         </button>
         <button class="nav-tab" data-view="blockchain" onclick="switchView('blockchain')">
           <i class="bi bi-link-45deg"></i> Audit Ledger
         </button>
       </nav>
 
-      <!-- Header Action Pill -->
+      <!-- Header Action Pill & Active Account -->
       <div class="header-actions">
         <div class="shield-badge">
-          <span class="dot"></span> ANTI-THEFT CIPHER VAULT
+          <i class="bi bi-person-circle text-info"></i> <span id="activeUserBadge">Manoj-548</span>
         </div>
         <button class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;" onclick="lockMasterVault()">
-          <i class="bi bi-lock-fill"></i> Lock Vault
+          <i class="bi bi-box-arrow-right"></i> Lock & Switch Account
         </button>
       </div>
     </header>
@@ -96,34 +106,34 @@
         <!-- Stats Row -->
         <div class="stats-container" style="margin-bottom: 20px;">
           <div class="stat-box">
-            <div class="stat-icon cyan"><i class="bi bi-eye-slash-fill"></i></div>
+            <div class="stat-icon cyan"><i class="bi bi-person-check-fill"></i></div>
             <div>
-              <div class="stat-val" id="statInvisibleTokens">0</div>
-              <div class="stat-lbl">Invisible Obfuscated Tokens</div>
+              <div class="stat-val" id="displayActiveUser">Manoj-548</div>
+              <div class="stat-lbl">Individual Account Owner</div>
             </div>
           </div>
 
           <div class="stat-box">
             <div class="stat-icon emerald"><i class="bi bi-shield-check"></i></div>
             <div>
-              <div class="stat-val" id="stat2FAStatus">ENFORCED</div>
-              <div class="stat-lbl">2FA & Anti-Theft Guard</div>
+              <div class="stat-val">2FA ENFORCED</div>
+              <div class="stat-lbl">Account Multi-Factor Security</div>
             </div>
           </div>
 
           <div class="stat-box">
-            <div class="stat-icon purple"><i class="bi bi-boxes"></i></div>
+            <div class="stat-icon purple"><i class="bi bi-eye-slash-fill"></i></div>
+            <div>
+              <div class="stat-val" id="statInvisibleTokens">0</div>
+              <div class="stat-lbl">Account Invisible Tokens</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon amber"><i class="bi bi-boxes"></i></div>
             <div>
               <div class="stat-val" id="statBlockCount">1</div>
               <div class="stat-lbl">Blockchain Ledger Height</div>
-            </div>
-          </div>
-
-          <div class="stat-box">
-            <div class="stat-icon amber"><i class="bi bi-shield-exclamation"></i></div>
-            <div>
-              <div class="stat-val" id="statPendingAlerts">0</div>
-              <div class="stat-lbl">Device & Token Alerts</div>
             </div>
           </div>
         </div>
@@ -133,14 +143,14 @@
           <!-- Token Creation Generator Card -->
           <div class="card gen-card">
             <div class="card-title">
-              <span><i class="bi bi-plus-circle-fill card-title-icon me-2"></i> Generate New Invisible Token</span>
-              <span class="badge badge-active"><i class="bi bi-shield-check"></i> Zero-Knowledge Encrypted</span>
+              <span><i class="bi bi-plus-circle-fill card-title-icon me-2"></i> Generate Token (Account Isolated)</span>
+              <span class="badge badge-active"><i class="bi bi-shield-check"></i> Isolated Vault</span>
             </div>
 
             <form id="tokenGenForm" onsubmit="handleTokenGenerate(event)">
               <div class="form-group">
                 <label class="form-label">Token Label / Purpose</label>
-                <input type="text" id="tokenLabelInput" class="form-input" placeholder="e.g. Production Payment API / External Access" required>
+                <input type="text" id="tokenLabelInput" class="form-input" placeholder="e.g. Personal API Key / App Authorization" required>
               </div>
 
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
@@ -154,9 +164,9 @@
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">2FA & Anti-Theft Level</label>
+                  <label class="form-label">2FA & Intentionality Safeguard</label>
                   <select id="tokenAlertLevelInput" class="form-select">
-                    <option value="strict" selected>Enforce 2FA OTP + Master Cipher Key</option>
+                    <option value="strict" selected>Enforce 2FA OTP + Instant Email Alert</option>
                     <option value="standard">Standard Account Log</option>
                   </select>
                 </div>
@@ -171,22 +181,22 @@
           <!-- 2FA & Multi-Device Security Guard Card -->
           <div class="card blockchain-card">
             <div class="card-title">
-              <span><i class="bi bi-phone-vibrate card-title-icon me-2"></i> Anti-Theft Device Guard</span>
+              <span><i class="bi bi-phone-vibrate card-title-icon me-2"></i> 2FA Account Guard</span>
               <span class="badge badge-active">Protected</span>
             </div>
             
             <div class="email-simulation">
               <div class="email-meta">
-                <i class="bi bi-shield-lock-fill text-info me-1"></i> <strong>GitHub & Vault 2FA Protection Status</strong>
+                <i class="bi bi-shield-lock-fill text-info me-1"></i> <strong>Account Protection Status</strong>
               </div>
               <div style="font-size: 13px;">
-                Status: <strong style="color: var(--accent-emerald);">2FA Master Key & Anti-Theft Active</strong>
+                Account: <strong style="color: var(--primary-cyan);" id="displayEmailUser">manoj548@token-secured.io</strong>
               </div>
               <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                If password is stolen, attackers CANNOT access repository or token vault without 2FA Authenticator.
+                Every sign-in, token sharing, or password loss triggers instant 2FA TOTP & email security notification alerts.
               </div>
               <button class="btn btn-secondary" style="margin-top: 8px; font-size: 12px;" onclick="simulateNewDeviceLogin()">
-                <i class="bi bi-phone"></i> Simulate Stolen Password Login Attempt
+                <i class="bi bi-phone"></i> Test Stolen Password 2FA Alert
               </button>
             </div>
           </div>
@@ -194,7 +204,7 @@
           <!-- Invisible Tokens Table Card -->
           <div class="card tokens-card">
             <div class="card-title">
-              <span><i class="bi bi-key-fill card-title-icon me-2"></i> Active Obfuscated Tokens</span>
+              <span><i class="bi bi-key-fill card-title-icon me-2"></i> Account Obfuscated Tokens</span>
               <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="simulateExternalShareAttempt()">
                 <i class="bi bi-share-fill"></i> Simulate Token Presentation
               </button>
@@ -222,7 +232,7 @@
           <!-- Blockchain Live Block Stream Card -->
           <div class="card tokens-card">
             <div class="card-title">
-              <span><i class="bi bi-boxes card-title-icon me-2"></i> Blockchain Audit Ledger</span>
+              <span><i class="bi bi-boxes card-title-icon me-2"></i> Immutable Audit Stream</span>
               <span class="badge badge-active">SHA-256 Chain</span>
             </div>
             
@@ -268,13 +278,13 @@
       <div class="modal-container">
         <div class="alert-popup-box">
           <div class="alert-popup-title">
-            <i class="bi bi-shield-slash-fill"></i> 2FA ANTI-THEFT ALERT: STOLEN PASSWORD ATTEMPT
+            <i class="bi bi-shield-slash-fill"></i> 2FA ACCOUNT SECURITY ALERT
           </div>
           <div style="font-size: 14px; color: #fff;">
-            Sign-in attempt detected from an <strong>Unrecognized Device</strong> using account credentials.
+            Sign-in / Access attempt detected from an <strong>Unrecognized Device</strong>.
           </div>
           <div style="font-size: 13px; color: var(--text-muted);">
-            Device: <strong style="color: var(--primary-cyan);" id="alertDeviceName">Attacker IP: 198.51.100.42 (Chrome/Mobile)</strong>
+            Target Account: <strong style="color: var(--primary-cyan);" id="alertTargetAccount">Manoj-548</strong>
           </div>
         </div>
 
@@ -284,10 +294,10 @@
             <i class="bi bi-envelope-fill text-info me-1"></i> <strong>Instant Alert Sent:</strong> 2fa-alert@token-secured.io &rarr; owner@account.org
           </div>
           <div>
-            <strong>Subject:</strong> Critical Security Notice: Password Login Blocked by 2FA
+            <strong>Subject:</strong> Critical Security Alert: Password Login Blocked by 2FA
           </div>
           <div style="font-size: 12px; color: var(--text-dim);">
-            Attacker blocked. Enter 2FA OTP Code to authorize or lock account.
+            Enter 2FA OTP Code below to authorize or lock account.
           </div>
         </div>
 
@@ -298,7 +308,7 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <button class="btn btn-danger" onclick="resolve2FAAlert(false)">
-            <i class="bi bi-x-circle-fill"></i> Block Attacker & Lock
+            <i class="bi bi-x-circle-fill"></i> Block & Lock Account
           </button>
           <button class="btn btn-success" onclick="resolve2FAAlert(true)">
             <i class="bi bi-check-circle-fill"></i> Authorize Device
@@ -345,7 +355,7 @@
 
     <!-- Footer -->
     <footer class="app-footer">
-      <div>Token Secured Platform &bull; Anti-Theft 2FA Lock &bull; Zero-Knowledge Cipher Vault</div>
+      <div>Token Secured Platform &bull; Individual Multi-Tenant 2FA Vault &bull; Blockchain Ledger</div>
     </footer>
 
   </div>
