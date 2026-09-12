@@ -1,5 +1,6 @@
 /* ============================================================================
-   TOKEN SECURED - APP CORE ENGINE WITH INDIVIDUAL MULTI-TENANT 2FA ACCOUNTS
+   TOKEN SECURED - APP CORE ENGINE
+   Dynamic 2FA Sign-up, Collaborator RBAC & PR Merge Approval Gate
    ============================================================================ */
 
 (function () {
@@ -7,20 +8,15 @@
 
   // Application State
   const state = {
-    currentUser: "Manoj-548",
+    authMode: 'signup', // 'signup' or 'signin'
+    users: {}, // { username: { email, passcode } }
+    currentUser: null,
     vaultUnlocked: false,
-    failedPasscodeAttempts: 0,
-    userTokensMap: {},
-    blockchain: [],
-    pendingAlert: null,
-    pending2FAAlert: null,
-    stats: {
-      verifiedUses: 0,
-      blockedAttempts: 0
-    }
+    collaborators: [],
+    pullRequests: [],
+    tokens: [],
+    blockchain: []
   };
-
-  const MASTER_VAULT_PASSCODE = "123456";
 
   // Helper: SHA-256 Hash simulation / Cryptographic string generator
   function generateCryptoHash(inputStr) {
@@ -34,65 +30,166 @@
     return '0x' + hex + Math.random().toString(36).substring(2, 10).toUpperCase();
   }
 
-  // Master Vault Lock & Decrypt Handlers
-  window.unlockMasterVault = function () {
-    const selectedUser = document.getElementById('userAccountSelector')?.value || "Manoj-548";
-    const entered = document.getElementById('masterPasscodeInput')?.value.trim();
-
-    if (entered === MASTER_VAULT_PASSCODE) {
-      state.currentUser = selectedUser;
-      state.vaultUnlocked = true;
-      state.failedPasscodeAttempts = 0;
-
-      document.getElementById('masterVaultLockScreen').classList.remove('active');
-      document.getElementById('activeUserBadge').textContent = selectedUser;
-      document.getElementById('displayActiveUser').textContent = selectedUser;
-      document.getElementById('displayEmailUser').textContent = `${selectedUser.toLowerCase()}@token-secured.io`;
-
-      appendBlockchainBlock("ACCOUNT_AUTHENTICATED", {
-        user: selectedUser,
-        status: "2FA_TOTP_VERIFIED",
-        action: "DECRYPTED_INDIVIDUAL_VAULT"
-      });
-
-      renderTokensTable();
-      renderStats();
-      alert(`🔓 Authenticated: Switched to isolated vault for [${selectedUser}]`);
-    } else {
-      state.failedPasscodeAttempts += 1;
-      appendBlockchainBlock("ANTI_THEFT_FAILED_LOGIN", {
-        user: selectedUser,
-        attempt: state.failedPasscodeAttempts,
-        status: "UNAUTHORIZED_ACCESS_BLOCKED"
-      });
-
-      if (state.failedPasscodeAttempts >= 3) {
-        alert(`⛔ ANTI-THEFT EMERGENCY LOCKOUT: 3 Failed Passcode attempts on account [${selectedUser}]! Security Alert Email dispatched to owner.`);
-        state.failedPasscodeAttempts = 0;
-      } else {
-        alert(`❌ Invalid Master Passcode! Attempts remaining: ${3 - state.failedPasscodeAttempts}`);
-      }
+  // Load Saved Users & State
+  function loadSavedState() {
+    const savedUsers = localStorage.getItem('cipher_users');
+    if (savedUsers) {
+      try { state.users = JSON.parse(savedUsers); } catch (e) { state.users = {}; }
     }
+
+    const savedCollabs = localStorage.getItem('cipher_collaborators');
+    if (savedCollabs) {
+      try { state.collaborators = JSON.parse(savedCollabs); } catch (e) { state.collaborators = []; }
+    }
+
+    const savedPRs = localStorage.getItem('cipher_prs');
+    if (savedPRs) {
+      try { state.pullRequests = JSON.parse(savedPRs); } catch (e) { state.pullRequests = []; }
+    }
+
+    const savedTokens = localStorage.getItem('cipher_tokens');
+    if (savedTokens) {
+      try { state.tokens = JSON.parse(savedTokens); } catch (e) { state.tokens = []; }
+    }
+
+    // Seed sample collaborators if empty
+    if (state.collaborators.length === 0) {
+      state.collaborators = [
+        { username: "dev_john", role: "Developer", scope: "Feature Branch Only", directPush: "BLOCKED", prRequired: "YES" },
+        { username: "tester_sarah", role: "QA Tester", scope: "Read-Only Testing", directPush: "BLOCKED", prRequired: "YES" }
+      ];
+    }
+
+    // Seed sample PR if empty
+    if (state.pullRequests.length === 0) {
+      state.pullRequests = [
+        { id: "PR-101", author: "dev_john", title: "Add Canvas Export & Filter Feature", branch: "feature/export", status: "PENDING_OWNER_APPROVAL" }
+      ];
+    }
+
+    // Determine initial auth mode
+    if (Object.keys(state.users).length > 0) {
+      window.setAuthMode('signin');
+    } else {
+      window.setAuthMode('signup');
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem('cipher_users', JSON.stringify(state.users));
+    localStorage.setItem('cipher_collaborators', JSON.stringify(state.collaborators));
+    localStorage.setItem('cipher_prs', JSON.stringify(state.pullRequests));
+    localStorage.setItem('cipher_tokens', JSON.stringify(state.tokens));
+    localStorage.setItem('cipher_blockchain', JSON.stringify(state.blockchain));
+  }
+
+  // Toggle Auth Mode (Sign Up vs Sign In)
+  window.setAuthMode = function (mode) {
+    state.authMode = mode;
+    const title = document.getElementById('authModalTitle');
+    const subtitle = document.getElementById('authModalSubtitle');
+    const emailGroup = document.getElementById('authEmailGroup');
+    const submitBtn = document.getElementById('authSubmitBtn');
+
+    if (mode === 'signup') {
+      if (title) title.textContent = "CREATE MASTER 2FA ACCOUNT";
+      if (subtitle) subtitle.textContent = "Setup your individual Master Account & Enforce 2FA.";
+      if (emailGroup) emailGroup.style.display = 'block';
+      if (submitBtn) submitBtn.innerHTML = '<i class="bi bi-person-plus-fill"></i> Create Account & Setup 2FA';
+    } else {
+      if (title) title.textContent = "TOKEN SECURED SIGN IN";
+      if (subtitle) subtitle.textContent = "Enter your username & 2FA passcode to decrypt vault.";
+      if (emailGroup) emailGroup.style.display = 'none';
+      if (submitBtn) submitBtn.innerHTML = '<i class="bi bi-shield-lock-fill"></i> Authenticate & Decrypt Vault';
+    }
+  };
+
+  // Auth Form Submit (Registration vs Sign In)
+  window.handleAuthSubmit = function (e) {
+    e.preventDefault();
+    const username = document.getElementById('authUsernameInput').value.trim();
+    const email = document.getElementById('authEmailInput').value.trim();
+    const passcode = document.getElementById('masterPasscodeInput').value.trim();
+
+    if (!username || !passcode) {
+      alert("Please enter username and 2FA passcode.");
+      return;
+    }
+
+    if (state.authMode === 'signup') {
+      if (state.users[username]) {
+        alert("Account username already exists. Please sign in instead.");
+        window.setAuthMode('signin');
+        return;
+      }
+
+      // Register New Account
+      state.users[username] = {
+        email: email || `${username.toLowerCase()}@token-secured.io`,
+        passcode: passcode,
+        createdAt: new Date().toLocaleString()
+      };
+
+      state.currentUser = username;
+      state.vaultUnlocked = true;
+      saveState();
+
+      appendBlockchainBlock("ACCOUNT_REGISTERED", {
+        user: username,
+        email: state.users[username].email,
+        status: "2FA_ENFORCED"
+      });
+
+      alert(`✅ Account Created! Master Account [${username}] registered with 2FA protection!`);
+    } else {
+      // Sign In
+      const user = state.users[username];
+      if (!user) {
+        alert(`❌ Account [${username}] not found. Please create an account first.`);
+        return;
+      }
+
+      if (user.passcode !== passcode) {
+        appendBlockchainBlock("FAILED_SIGNIN_ATTEMPT", {
+          user: username,
+          status: "UNAUTHORIZED_2FA_BLOCKED"
+        });
+        alert(`⛔ 2FA Security Alert: Invalid 2FA Passcode! Security notification sent to ${user.email}.`);
+        return;
+      }
+
+      state.currentUser = username;
+      state.vaultUnlocked = true;
+
+      appendBlockchainBlock("ACCOUNT_SIGNIN", {
+        user: username,
+        status: "2FA_AUTHENTICATED"
+      });
+
+      alert(`🔓 Authenticated: Signed in as [${username}] with 2FA vault protection!`);
+    }
+
+    // Hide Auth Modal & Update UI
+    document.getElementById('masterVaultLockScreen').classList.remove('active');
+    document.getElementById('activeUserBadge').textContent = state.currentUser;
+    document.getElementById('displayActiveUser').textContent = state.currentUser;
+
+    renderAll();
   };
 
   window.lockMasterVault = function () {
     state.vaultUnlocked = false;
     document.getElementById('masterVaultLockScreen').classList.add('active');
-    appendBlockchainBlock("VAULT_LOCKED", {
-      user: state.currentUser,
-      status: "SECURITY_ENCRYPTED"
-    });
+    if (Object.keys(state.users).length > 0) {
+      window.setAuthMode('signin');
+    }
   };
 
   // Initialize Genesis Block on Blockchain
   function initGenesisBlock() {
     const savedBlocks = localStorage.getItem('cipher_blockchain');
     if (savedBlocks) {
-      try {
-        state.blockchain = JSON.parse(savedBlocks);
-      } catch (e) {
-        state.blockchain = [];
-      }
+      try { state.blockchain = JSON.parse(savedBlocks); } catch (e) { state.blockchain = []; }
     }
 
     if (state.blockchain.length === 0) {
@@ -109,7 +206,6 @@
     }
   }
 
-  // Add a block to the immutable Blockchain
   function appendBlockchainBlock(type, details) {
     const prevBlock = state.blockchain[state.blockchain.length - 1];
     const newBlock = {
@@ -125,124 +221,90 @@
     renderBlockchain();
   }
 
-  // Load User Tokens State
-  function loadTokens() {
-    const savedMap = localStorage.getItem('cipher_user_tokens_map');
-    if (savedMap) {
-      try {
-        state.userTokensMap = JSON.parse(savedMap);
-      } catch (e) {
-        state.userTokensMap = {};
-      }
-    }
+  // Add Collaborator Form Handler
+  window.handleAddCollaboratorSubmit = function (e) {
+    e.preventDefault();
+    const username = document.getElementById('collabUsernameInput').value.trim();
+    const role = document.getElementById('collabRoleInput').value;
+    const scope = document.getElementById('collabScopeInput').value;
 
-    if (!state.userTokensMap["Manoj-548"]) {
-      state.userTokensMap["Manoj-548"] = [
-        {
-          id: "TK-8942-SECURED",
-          label: "Manoj-548 Personal Production API",
-          rawCode: "TK-8942-X9F2-901B-SECRET",
-          maskedCode: "TK-8942-****-****-0x89F",
-          status: "active",
-          createdAt: new Date().toLocaleString(),
-          expiryMinutes: 60,
-          alertLevel: "strict"
-        }
-      ];
-      saveState();
-    }
-  }
+    if (!username) return;
 
-  function getActiveUserTokens() {
-    if (!state.userTokensMap[state.currentUser]) {
-      state.userTokensMap[state.currentUser] = [];
-    }
-    return state.userTokensMap[state.currentUser];
-  }
+    const newCollab = {
+      username: username,
+      role: role,
+      scope: scope,
+      directPush: "BLOCKED",
+      prRequired: "YES"
+    };
 
-  function saveState() {
-    localStorage.setItem('cipher_user_tokens_map', JSON.stringify(state.userTokensMap));
-    localStorage.setItem('cipher_blockchain', JSON.stringify(state.blockchain));
-  }
+    state.collaborators.push(newCollab);
+    saveState();
 
-  // UI Renderers
-  function renderStats() {
-    const activeTokens = getActiveUserTokens();
-    const invisibleCount = activeTokens.filter(t => t.status === 'active').length;
-    const pendingAlertsCount = (state.pendingAlert ? 1 : 0) + (state.pending2FAAlert ? 1 : 0);
+    appendBlockchainBlock("COLLABORATOR_INVITED", {
+      invitedBy: state.currentUser,
+      collaborator: username,
+      role: role,
+      directPush: "RESTRICTED_PR_MANDATORY"
+    });
 
-    document.getElementById('statInvisibleTokens').textContent = invisibleCount;
-    document.getElementById('statBlockCount').textContent = state.blockchain.length;
-    document.getElementById('statPendingAlerts').textContent = pendingAlertsCount;
-  }
+    window.closeModal('modalAddCollaborator');
+    document.getElementById('collabUsernameInput').value = '';
+    renderCollaboratorsTable();
+    renderStats();
+    alert(`✅ Collaborator Invited: [${username}] added as ${role}. Direct push blocked; PR approval required for code updates.`);
+  };
 
-  function renderTokensTable() {
-    const tbody = document.getElementById('tokensTableBody');
-    if (!tbody) return;
+  // Simulate Collaborator Pull Request Submission
+  window.simulateCollaboratorPRSubmission = function () {
+    const randomPrId = `PR-${Math.floor(100 + Math.random() * 900)}`;
+    const authors = ["dev_john", "tester_sarah", "contractor_mike"];
+    const author = authors[Math.floor(Math.random() * authors.length)];
+    const titles = ["Optimized Image Processing Pipeline", "Updated RTSP Live Streaming Handler", "Added Keypoint Pose Estimation Labels"];
+    const title = titles[Math.floor(Math.random() * titles.length)];
 
-    const tokens = getActiveUserTokens();
+    const newPR = {
+      id: randomPrId,
+      author: author,
+      title: title,
+      branch: `feature/${author}-update`,
+      status: "PENDING_OWNER_APPROVAL"
+    };
 
-    if (tokens.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
-            No active tokens in vault for [${state.currentUser}]. Click "Generate New Invisible Token" above.
-          </td>
-        </tr>
-      `;
-      return;
-    }
+    state.pullRequests.unshift(newPR);
+    saveState();
 
-    tbody.innerHTML = tokens.map(token => {
-      let statusBadge = `<span class="badge badge-active"><i class="bi bi-shield-check"></i> Active</span>`;
-      if (token.status === 'revoked') {
-        statusBadge = `<span class="badge badge-revoked"><i class="bi bi-shield-x"></i> Revoked</span>`;
-      }
+    appendBlockchainBlock("PR_SUBMITTED", {
+      prId: randomPrId,
+      author: author,
+      title: title,
+      status: "AWAITING_OWNER_2FA_APPROVAL"
+    });
 
-      return `
-        <tr>
-          <td style="font-family: var(--font-mono); font-weight: 700; color: var(--primary-cyan);">${token.id}</td>
-          <td>${token.label}</td>
-          <td>
-            <span class="token-code masked">
-              <i class="bi bi-eye-slash-fill me-1"></i> ${token.maskedCode}
-            </span>
-          </td>
-          <td>${statusBadge}</td>
-          <td style="font-size: 12px; color: var(--text-muted);">${token.createdAt}</td>
-          <td>
-            ${token.status === 'active' ? `
-              <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="triggerTokenVerifyAlert('${token.id}')">
-                <i class="bi bi-share"></i> Utilize & Verify
-              </button>
-              <button class="btn btn-danger" style="padding: 4px 10px; font-size: 11px; margin-left: 4px;" onclick="revokeToken('${token.id}')">
-                <i class="bi bi-x-circle"></i> Revoke
-              </button>
-            ` : `<span style="font-size: 11px; color: var(--text-dim);">No Actions</span>`}
-          </td>
-        </tr>
-      `;
-    }).join('');
-  }
+    renderPRTable();
+    renderStats();
+    alert(`📥 New Pull Request Received: [${randomPrId}] from ${author}. Awaiting Master Owner [${state.currentUser}] approval.`);
+  };
 
-  function renderBlockchain() {
-    const container = document.getElementById('blockchainStream');
-    if (!container) return;
+  // Owner Approve & Merge PR
+  window.approvePR = function (prId) {
+    const pr = state.pullRequests.find(p => p.id === prId);
+    if (!pr) return;
 
-    container.innerHTML = state.blockchain.map(block => {
-      return `
-        <div class="block-item ${block.type === 'GENESIS_BLOCK' ? 'genesis' : ''}">
-          <div class="block-header">
-            <span class="block-num">BLOCK #${block.index} [${block.type}]</span>
-            <span style="color: var(--text-muted); font-size: 11px;">${block.timestamp}</span>
-          </div>
-          <div style="font-size: 13px; font-weight: 600; color: #fff;">${typeof block.data === 'string' ? block.data : JSON.stringify(block.data)}</div>
-          <div class="block-hash">HASH: ${block.hash}</div>
-          <div class="block-hash" style="color: var(--text-dim);">PREV: ${block.prevHash.substring(0, 24)}...</div>
-        </div>
-      `;
-    }).join('');
-  }
+    pr.status = "MERGED_AND_DEPLOYED";
+    saveState();
+
+    appendBlockchainBlock("PR_MERGED_APPROVED", {
+      prId: pr.id,
+      approvedByOwner: state.currentUser,
+      author: pr.author,
+      status: "MERGED_TO_MAIN"
+    });
+
+    renderPRTable();
+    renderStats();
+    alert(`🎉 PR Approved & Merged! [${pr.id}] by ${pr.author} approved by Owner [${state.currentUser}] and merged to main!`);
+  };
 
   // Token Generation Handler
   window.handleTokenGenerate = function (e) {
@@ -268,8 +330,7 @@
       alertLevel: alertLevel
     };
 
-    const userTokens = getActiveUserTokens();
-    userTokens.unshift(newToken);
+    state.tokens.unshift(newToken);
     saveState();
 
     appendBlockchainBlock("TOKEN_GENERATION", {
@@ -288,59 +349,7 @@
     renderStats();
   };
 
-  // 2FA Security Login Alert Simulator
-  window.simulateNewDeviceLogin = function () {
-    const randomIP = `198.51.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
-    const devices = ["iPhone 15 Pro / Safari", "Linux Workstation / Firefox", "Windows 11 / Edge", "Attacker Device / Chrome"];
-    const chosenDevice = devices[Math.floor(Math.random() * devices.length)] + ` (IP: ${randomIP})`;
-
-    state.pending2FAAlert = {
-      device: chosenDevice,
-      timestamp: new Date().toLocaleTimeString()
-    };
-
-    document.getElementById('alertTargetAccount').textContent = state.currentUser;
-    document.getElementById('otpCodeInput').value = '';
-
-    appendBlockchainBlock("STOLEN_PASSWORD_2FA_CHALLENGE", {
-      user: state.currentUser,
-      device: chosenDevice,
-      status: "STOLEN_PASSWORD_BLOCKED_BY_2FA"
-    });
-
-    window.openModal('modal2FAAlert');
-    renderStats();
-  };
-
-  // Resolve 2FA Alert (Verify OTP vs Block Device)
-  window.resolve2FAAlert = function (isApproved) {
-    const alertData = state.pending2FAAlert;
-    if (!alertData) return;
-
-    if (isApproved) {
-      const otp = document.getElementById('otpCodeInput').value.trim();
-      appendBlockchainBlock("2FA_LOGIN_SUCCESS", {
-        user: state.currentUser,
-        device: alertData.device,
-        otpVerified: otp || "PASSKEY_AUTH",
-        action: "DEVICE_AUTHORIZED"
-      });
-      alert(`✅ 2FA Verified: Device [${alertData.device}] authorized for account [${state.currentUser}]!`);
-    } else {
-      appendBlockchainBlock("2FA_LOGIN_BLOCKED", {
-        user: state.currentUser,
-        device: alertData.device,
-        action: "ATTACKER_BLOCKED_ACCOUNT_LOCKED"
-      });
-      alert(`⛔ ANTI-THEFT LOCKOUT: Attacker attempt from [${alertData.device}] BLOCKED. Account [${state.currentUser}] secured!`);
-    }
-
-    state.pending2FAAlert = null;
-    window.closeModal('modal2FAAlert');
-    renderStats();
-  };
-
-  // One-Time Secret Copy
+  // Copy Secret Token
   window.copyRevealToken = function () {
     const code = document.getElementById('revealTokenCode').textContent;
     navigator.clipboard.writeText(code).then(() => {
@@ -350,79 +359,126 @@
     });
   };
 
-  // Trigger Intentionality Verification Alert HUD
-  window.triggerTokenVerifyAlert = function (tokenId) {
-    const userTokens = getActiveUserTokens();
-    const token = userTokens.find(t => t.id === tokenId);
-    if (!token) return;
+  // Render Functions
+  function renderStats() {
+    const activeUser = state.currentUser || "No Account";
+    document.getElementById('displayActiveUser').textContent = activeUser;
+    document.getElementById('statInvisibleTokens').textContent = state.tokens.filter(t => t.status === 'active').length;
+    document.getElementById('statBlockCount').textContent = state.blockchain.length;
+    document.getElementById('statCollaboratorsCount').textContent = state.collaborators.length;
 
-    state.pendingAlert = token;
+    const pendingPRs = state.pullRequests.filter(p => p.status.includes('PENDING')).length;
+    document.getElementById('statPRCount').textContent = pendingPRs;
+
+    const prBadge = document.getElementById('navPRBadge');
+    if (prBadge) {
+      if (pendingPRs > 0) {
+        prBadge.style.display = 'inline-flex';
+        prBadge.textContent = pendingPRs;
+      } else {
+        prBadge.style.display = 'none';
+      }
+    }
+  }
+
+  function renderCollaboratorsTable() {
+    const tbody = document.getElementById('collaboratorsTableBody');
+    if (!tbody) return;
+
+    if (state.collaborators.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 16px; color: var(--text-muted);">No collaborators added. Click "Invite Collaborator" above.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = state.collaborators.map(c => `
+      <tr>
+        <td style="font-weight: 700; color: var(--primary-cyan);">${c.username}</td>
+        <td><span class="badge badge-active">${c.role}</span></td>
+        <td style="font-size: 12px; color: var(--text-muted);">${c.scope}</td>
+        <td><span class="badge badge-revoked"><i class="bi bi-lock-fill"></i> BLOCKED</span></td>
+        <td><span class="badge badge-pending"><i class="bi bi-shield-lock"></i> YES (Owner Approval)</span></td>
+        <td><span style="font-size: 11px; color: var(--text-dim);">Restricted</span></td>
+      </tr>
+    `).join('');
+  }
+
+  function renderPRTable() {
+    const tbody = document.getElementById('prTableBody');
+    if (!tbody) return;
+
+    if (state.pullRequests.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 16px; color: var(--text-muted);">No pending Pull Requests.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = state.pullRequests.map(p => `
+      <tr>
+        <td style="font-family: var(--font-mono); font-weight: 700; color: var(--primary-cyan);">${p.id}</td>
+        <td style="font-weight: 600;">${p.author}</td>
+        <td style="font-size: 13px;">${p.title}</td>
+        <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">${p.branch}</td>
+        <td>
+          ${p.status.includes('MERGED') 
+            ? `<span class="badge badge-active"><i class="bi bi-check-circle-fill"></i> Merged</span>` 
+            : `<span class="badge badge-pending"><i class="bi bi-hourglass-split"></i> Awaiting Owner Review</span>`}
+        </td>
+        <td>
+          ${p.status.includes('PENDING') ? `
+            <button class="btn btn-success" style="padding: 4px 10px; font-size: 11px;" onclick="approvePR('${p.id}')">
+              <i class="bi bi-check-lg"></i> Approve & Merge
+            </button>
+          ` : `<span style="font-size: 11px; color: var(--accent-emerald); font-weight: 700;">Approved</span>`}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderTokensTable() {
+    const tbody = document.getElementById('tokensTableBody');
+    if (!tbody) return;
+
+    if (state.tokens.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">No tokens in vault. Click "Generate New Invisible Token" above.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = state.tokens.map(token => `
+      <tr>
+        <td style="font-family: var(--font-mono); font-weight: 700; color: var(--primary-cyan);">${token.id}</td>
+        <td>${token.label}</td>
+        <td><span class="token-code masked"><i class="bi bi-eye-slash-fill me-1"></i> ${token.maskedCode}</span></td>
+        <td><span class="badge badge-active"><i class="bi bi-shield-check"></i> Active</span></td>
+        <td style="font-size: 12px; color: var(--text-muted);">${token.createdAt}</td>
+        <td><span style="font-size: 11px; color: var(--text-dim);">Protected</span></td>
+      </tr>
+    `).join('');
+  }
+
+  function renderBlockchain() {
+    const container = document.getElementById('blockchainStream');
+    if (!container) return;
+
+    container.innerHTML = state.blockchain.map(block => `
+      <div class="block-item ${block.type === 'GENESIS_BLOCK' ? 'genesis' : ''}">
+        <div class="block-header">
+          <span class="block-num">BLOCK #${block.index} [${block.type}]</span>
+          <span style="color: var(--text-muted); font-size: 11px;">${block.timestamp}</span>
+        </div>
+        <div style="font-size: 13px; font-weight: 600; color: #fff;">${typeof block.data === 'string' ? block.data : JSON.stringify(block.data)}</div>
+        <div class="block-hash">HASH: ${block.hash}</div>
+        <div class="block-hash" style="color: var(--text-dim);">PREV: ${block.prevHash.substring(0, 24)}...</div>
+      </div>
+    `).join('');
+  }
+
+  function renderAll() {
     renderStats();
-
-    document.getElementById('alertTokenIdDisplay').textContent = `${token.id} (${token.label})`;
-    window.openModal('modalAlert');
-  };
-
-  // External Share Simulation Button Handler
-  window.simulateExternalShareAttempt = function () {
-    const userTokens = getActiveUserTokens();
-    const activeToken = userTokens.find(t => t.status === 'active');
-    if (activeToken) {
-      window.triggerTokenVerifyAlert(activeToken.id);
-    } else {
-      alert("Please generate a token first.");
-    }
-  };
-
-  // Resolve Intentionality Alert (Approve vs Reject)
-  window.resolveAlert = function (isApproved) {
-    const token = state.pendingAlert;
-    if (!token) return;
-
-    if (isApproved) {
-      appendBlockchainBlock("INTENTIONALITY_APPROVED", {
-        user: state.currentUser,
-        tokenId: token.id,
-        action: "USER_EXPLICIT_2FA_CONFIRMATION",
-        result: "AUTHORIZED_AND_LOGGED"
-      });
-      alert(`✅ Access Granted: Token ${token.id} confirmed as intentional by owner [${state.currentUser}].`);
-    } else {
-      token.status = 'revoked';
-      appendBlockchainBlock("INTENTIONALITY_REJECTED", {
-        user: state.currentUser,
-        tokenId: token.id,
-        action: "2FA_SECURITY_BLOCK_REVOCATION",
-        result: "TOKEN_INSTANTLY_REVOKED"
-      });
-      alert(`⛔ SECURITY ALERT: Token ${token.id} flagged as unauthorized and INSTANTLY REVOKED.`);
-    }
-
-    state.pendingAlert = null;
-    saveState();
-    window.closeModal('modalAlert');
+    renderCollaboratorsTable();
+    renderPRTable();
     renderTokensTable();
-    renderStats();
-  };
+    renderBlockchain();
+  }
 
-  // Revoke Token Directly
-  window.revokeToken = function (tokenId) {
-    const userTokens = getActiveUserTokens();
-    const token = userTokens.find(t => t.id === tokenId);
-    if (token) {
-      token.status = 'revoked';
-      appendBlockchainBlock("TOKEN_REVOCATION", {
-        user: state.currentUser,
-        tokenId: tokenId,
-        reason: "MANUAL_REVOCATION_BY_OWNER"
-      });
-      saveState();
-      renderTokensTable();
-      renderStats();
-    }
-  };
-
-  // View & Modal Switchers
   window.switchView = function (viewName) {
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.classList.toggle('active', tab.getAttribute('data-view') === viewName);
@@ -439,14 +495,11 @@
     if (modal) modal.classList.remove('active');
   };
 
-  // Initialize Application
   function init() {
     initGenesisBlock();
-    loadTokens();
-    renderTokensTable();
-    renderBlockchain();
-    renderStats();
-    console.log("Token Secured Engine Initialized OK with Individual User Accounts");
+    loadSavedState();
+    renderAll();
+    console.log("Token Secured Engine Initialized OK with 2FA Gate & PR Merge Approval Guard");
   }
 
   if (document.readyState === 'loading') {

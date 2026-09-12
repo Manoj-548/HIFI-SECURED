@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Token Secured - Individual Multi-Tenant 2FA & Anti-Theft Platform</title>
+  <title>Token Secured - 2FA Security, Collaborator RBAC & PR Approval Gate</title>
   
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,37 +21,50 @@
 </head>
 <body>
 
-  <!-- MASTER ANTI-THEFT VAULT SECURITY LOCK OVERLAY -->
-  <div id="masterVaultLockScreen" class="modal-overlay active" style="z-index: 9999; background: rgba(5, 7, 12, 0.95); backdrop-filter: blur(20px);">
-    <div class="modal-container" style="max-width: 440px; text-align: center;">
-      <div style="font-size: 48px; color: var(--primary-cyan); margin-bottom: 8px;">
-        <i class="bi bi-person-badge-fill"></i>
+  <!-- FIRST-TIME SIGN-UP / 2FA AUTHENTICATION GATEWAY OVERLAY -->
+  <div id="masterVaultLockScreen" class="modal-overlay active" style="z-index: 9999; background: rgba(5, 7, 12, 0.96); backdrop-filter: blur(24px);">
+    <div class="modal-container" style="max-width: 480px; text-align: center;">
+      <div style="font-size: 44px; color: var(--primary-cyan); margin-bottom: 4px;">
+        <i class="bi bi-shield-lock-fill"></i>
       </div>
-      <h2 style="color: #fff; font-weight: 800;">TOKEN SECURED PORTAL</h2>
-      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-        Individual User Account Authentication Active.<br>Sign in to your isolated 2FA cipher vault.
+      <h2 id="authModalTitle" style="color: #fff; font-weight: 800;">TOKEN SECURED GATEWAY</h2>
+      <p id="authModalSubtitle" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+        Create your Master Account & Setup 2FA Enforcement.
       </p>
 
-      <div class="form-group" style="margin-bottom: 12px;">
-        <label class="form-label">Select Individual Account</label>
-        <select id="userAccountSelector" class="form-select">
-          <option value="Manoj-548" selected>Manoj-548 (Master Owner & Individual Account)</option>
-          <option value="Enterprise-User">Enterprise Client User (Isolated Vault)</option>
-          <option value="Guest-Collaborator">Collaborator Account (Restricted)</option>
-        </select>
+      <!-- Toggle Sign Up / Sign In -->
+      <div style="display: flex; gap: 8px; background: rgba(15, 23, 42, 0.8); padding: 4px; border-radius: var(--radius-sm); margin-bottom: 16px;">
+        <button id="toggleSignUpBtn" class="btn btn-secondary" style="flex:1; padding: 6px; font-size: 12px;" onclick="setAuthMode('signup')">
+          <i class="bi bi-person-plus-fill"></i> Create Account
+        </button>
+        <button id="toggleSignInBtn" class="btn btn-secondary" style="flex:1; padding: 6px; font-size: 12px;" onclick="setAuthMode('signin')">
+          <i class="bi bi-box-arrow-in-right"></i> Sign In (2FA)
+        </button>
       </div>
 
-      <div class="form-group" style="margin-bottom: 16px;">
-        <label class="form-label">Enter 2FA Master Passcode</label>
-        <input type="password" id="masterPasscodeInput" class="form-input" placeholder="2FA Code" style="text-align: center; font-size: 20px; letter-spacing: 6px; font-family: var(--font-mono);" value="123456" required>
-      </div>
+      <form id="authForm" onsubmit="handleAuthSubmit(event)">
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" style="text-align: left;">Username / Owner ID</label>
+          <input type="text" id="authUsernameInput" class="form-input" placeholder="e.g. Manoj-548" required>
+        </div>
 
-      <button class="btn btn-primary" style="width: 100%; padding: 14px;" onclick="unlockMasterVault()">
-        <i class="bi bi-shield-lock-fill"></i> Authenticate & Open Account Vault
-      </button>
+        <div id="authEmailGroup" class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" style="text-align: left;">Security Email (For 2FA & Data Loss Alerts)</label>
+          <input type="email" id="authEmailInput" class="form-input" placeholder="owner@account.org" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label" style="text-align: left;">2FA Security Passcode (6-Digits)</label>
+          <input type="password" id="masterPasscodeInput" class="form-input" placeholder="Enter 6-Digit 2FA Passcode" style="text-align: center; font-size: 20px; letter-spacing: 6px; font-family: var(--font-mono);" required>
+        </div>
+
+        <button type="submit" id="authSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 14px;">
+          <i class="bi bi-shield-check"></i> Register Account & Enforce 2FA
+        </button>
+      </form>
 
       <div style="font-size: 11px; color: var(--text-dim); margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-        <i class="bi bi-lock-fill text-success"></i> 2FA Enforced &bull; Default Code: <code>123456</code>
+        <i class="bi bi-lock-fill text-success"></i> Mandatory 2FA TOTP &bull; PR Merge Approval Required
       </div>
     </div>
   </div>
@@ -66,7 +79,7 @@
         </div>
         <div>
           <div class="brand-title">TOKEN SECURED</div>
-          <div class="brand-subtitle">Individual 2FA Account & Blockchain Vault</div>
+          <div class="brand-subtitle">2FA Guard, Collaborator RBAC & PR Merge Approval</div>
         </div>
       </a>
 
@@ -78,8 +91,11 @@
         <button class="nav-tab" data-view="tokens" onclick="switchView('tokens')">
           <i class="bi bi-key-fill"></i> Invisible Tokens
         </button>
-        <button class="nav-tab" data-view="2fa" onclick="switchView('2fa')">
-          <i class="bi bi-person-vcard-fill"></i> Account 2FA
+        <button class="nav-tab" data-view="collaborators" onclick="switchView('collaborators')">
+          <i class="bi bi-people-fill"></i> Collaborators & Access
+        </button>
+        <button class="nav-tab" data-view="pullrequests" onclick="switchView('pullrequests')">
+          <i class="bi bi-git"></i> PR Approvals <span id="navPRBadge" class="badge badge-pending" style="display:none;">0</span>
         </button>
         <button class="nav-tab" data-view="blockchain" onclick="switchView('blockchain')">
           <i class="bi bi-link-45deg"></i> Audit Ledger
@@ -89,10 +105,10 @@
       <!-- Header Action Pill & Active Account -->
       <div class="header-actions">
         <div class="shield-badge">
-          <i class="bi bi-person-circle text-info"></i> <span id="activeUserBadge">Manoj-548</span>
+          <i class="bi bi-person-circle text-info"></i> <span id="activeUserBadge">Not Logged In</span>
         </div>
         <button class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;" onclick="lockMasterVault()">
-          <i class="bi bi-box-arrow-right"></i> Lock & Switch Account
+          <i class="bi bi-box-arrow-right"></i> Lock / Logout
         </button>
       </div>
     </header>
@@ -108,8 +124,8 @@
           <div class="stat-box">
             <div class="stat-icon cyan"><i class="bi bi-person-check-fill"></i></div>
             <div>
-              <div class="stat-val" id="displayActiveUser">Manoj-548</div>
-              <div class="stat-lbl">Individual Account Owner</div>
+              <div class="stat-val" id="displayActiveUser">No Account</div>
+              <div class="stat-lbl">Master Account Owner</div>
             </div>
           </div>
 
@@ -117,23 +133,23 @@
             <div class="stat-icon emerald"><i class="bi bi-shield-check"></i></div>
             <div>
               <div class="stat-val">2FA ENFORCED</div>
-              <div class="stat-lbl">Account Multi-Factor Security</div>
+              <div class="stat-lbl">Multi-Factor Security</div>
             </div>
           </div>
 
           <div class="stat-box">
-            <div class="stat-icon purple"><i class="bi bi-eye-slash-fill"></i></div>
+            <div class="stat-icon purple"><i class="bi bi-git"></i></div>
             <div>
-              <div class="stat-val" id="statInvisibleTokens">0</div>
-              <div class="stat-lbl">Account Invisible Tokens</div>
+              <div class="stat-val" id="statPRCount">0</div>
+              <div class="stat-lbl">PR Merge Approvals Pending</div>
             </div>
           </div>
 
           <div class="stat-box">
-            <div class="stat-icon amber"><i class="bi bi-boxes"></i></div>
+            <div class="stat-icon amber"><i class="bi bi-people-fill"></i></div>
             <div>
-              <div class="stat-val" id="statBlockCount">1</div>
-              <div class="stat-lbl">Blockchain Ledger Height</div>
+              <div class="stat-val" id="statCollaboratorsCount">0</div>
+              <div class="stat-lbl">Managed Collaborators</div>
             </div>
           </div>
         </div>
@@ -164,10 +180,10 @@
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">2FA & Intentionality Safeguard</label>
+                  <label class="form-label">2FA Safeguard</label>
                   <select id="tokenAlertLevelInput" class="form-select">
                     <option value="strict" selected>Enforce 2FA OTP + Instant Email Alert</option>
-                    <option value="standard">Standard Account Log</option>
+                    <option value="standard">Standard Log</option>
                   </select>
                 </div>
               </div>
@@ -178,35 +194,32 @@
             </form>
           </div>
 
-          <!-- 2FA & Multi-Device Security Guard Card -->
+          <!-- PR Merge Approval Gate Card -->
           <div class="card blockchain-card">
             <div class="card-title">
-              <span><i class="bi bi-phone-vibrate card-title-icon me-2"></i> 2FA Account Guard</span>
-              <span class="badge badge-active">Protected</span>
+              <span><i class="bi bi-git card-title-icon me-2"></i> Mandatory PR Approval Gate</span>
+              <span class="badge badge-pending">PR Control Active</span>
             </div>
             
             <div class="email-simulation">
               <div class="email-meta">
-                <i class="bi bi-shield-lock-fill text-info me-1"></i> <strong>Account Protection Status</strong>
+                <i class="bi bi-shield-lock-fill text-info me-1"></i> <strong>Source Control Security Guard</strong>
               </div>
               <div style="font-size: 13px;">
-                Account: <strong style="color: var(--primary-cyan);" id="displayEmailUser">manoj548@token-secured.io</strong>
+                No collaborator/tester can push directly to repo. All code updates require <strong>Owner PR Review & 2FA Approval</strong>.
               </div>
-              <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                Every sign-in, token sharing, or password loss triggers instant 2FA TOTP & email security notification alerts.
-              </div>
-              <button class="btn btn-secondary" style="margin-top: 8px; font-size: 12px;" onclick="simulateNewDeviceLogin()">
-                <i class="bi bi-phone"></i> Test Stolen Password 2FA Alert
+              <button class="btn btn-secondary" style="margin-top: 8px; font-size: 12px;" onclick="simulateCollaboratorPRSubmission()">
+                <i class="bi bi-node-plus"></i> Simulate Collaborator PR Submission
               </button>
             </div>
           </div>
 
-          <!-- Invisible Tokens Table Card -->
+          <!-- Collaborators Management Card -->
           <div class="card tokens-card">
             <div class="card-title">
-              <span><i class="bi bi-key-fill card-title-icon me-2"></i> Account Obfuscated Tokens</span>
-              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="simulateExternalShareAttempt()">
-                <i class="bi bi-share-fill"></i> Simulate Token Presentation
+              <span><i class="bi bi-people-fill card-title-icon me-2"></i> Collaborator Access Control</span>
+              <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="openModal('modalAddCollaborator')">
+                <i class="bi bi-person-plus"></i> Invite Collaborator
               </button>
             </div>
 
@@ -214,22 +227,47 @@
               <table class="tokens-table">
                 <thead>
                   <tr>
-                    <th>Token ID</th>
-                    <th>Label / Purpose</th>
-                    <th>Invisible Token Code (Obfuscated)</th>
-                    <th>Status</th>
-                    <th>Created</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Access Scopes</th>
+                    <th>Direct Push</th>
+                    <th>PR Required</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody id="tokensTableBody">
-                  <!-- Token rows populated dynamically -->
+                <tbody id="collaboratorsTableBody">
+                  <!-- Populated dynamically -->
                 </tbody>
               </table>
             </div>
           </div>
 
-          <!-- Blockchain Live Block Stream Card -->
+          <!-- Pending Pull Requests Card -->
+          <div class="card tokens-card">
+            <div class="card-title">
+              <span><i class="bi bi-git card-title-icon me-2"></i> Pending Pull Requests (PR Approval Required)</span>
+            </div>
+
+            <div class="tokens-table-wrap">
+              <table class="tokens-table">
+                <thead>
+                  <tr>
+                    <th>PR ID</th>
+                    <th>Author</th>
+                    <th>Proposed Change</th>
+                    <th>Target Branch</th>
+                    <th>Status</th>
+                    <th>Owner Approval</th>
+                  </tr>
+                </thead>
+                <tbody id="prTableBody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Blockchain Audit Stream Card -->
           <div class="card tokens-card">
             <div class="card-title">
               <span><i class="bi bi-boxes card-title-icon me-2"></i> Immutable Audit Stream</span>
@@ -246,6 +284,44 @@
       </div>
 
     </main>
+
+    <!-- INVITE COLLABORATOR MODAL -->
+    <div id="modalAddCollaborator" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title"><i class="bi bi-person-plus-fill text-info"></i> Invite New Collaborator</div>
+          <button class="modal-close" onclick="closeModal('modalAddCollaborator')"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <form onsubmit="handleAddCollaboratorSubmit(event)">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Collaborator Username / ID</label>
+            <input type="text" id="collabUsernameInput" class="form-input" placeholder="e.g. dev_john" required>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Role Assignment</label>
+            <select id="collabRoleInput" class="form-select">
+              <option value="Developer">Developer (PR Required)</option>
+              <option value="QA Tester">QA Tester (Read-only / PR Required)</option>
+              <option value="Reviewer">Reviewer (No Direct Push)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="form-label">Access Scope</label>
+            <select id="collabScopeInput" class="form-select">
+              <option value="Scoped Feature Access">Scoped Feature Branch Only</option>
+              <option value="Read-Only Testing">Read-Only Testing Environment</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">
+            <i class="bi bi-check-circle-fill"></i> Add Collaborator (Direct Push Restricted)
+          </button>
+        </form>
+      </div>
+    </div>
 
     <!-- REVEAL TOKEN MODAL -->
     <div id="modalReveal" class="modal-overlay">
@@ -273,89 +349,9 @@
       </div>
     </div>
 
-    <!-- 2FA & DEVICE SECURITY ALERT POPUP MODAL -->
-    <div id="modal2FAAlert" class="modal-overlay">
-      <div class="modal-container">
-        <div class="alert-popup-box">
-          <div class="alert-popup-title">
-            <i class="bi bi-shield-slash-fill"></i> 2FA ACCOUNT SECURITY ALERT
-          </div>
-          <div style="font-size: 14px; color: #fff;">
-            Sign-in / Access attempt detected from an <strong>Unrecognized Device</strong>.
-          </div>
-          <div style="font-size: 13px; color: var(--text-muted);">
-            Target Account: <strong style="color: var(--primary-cyan);" id="alertTargetAccount">Manoj-548</strong>
-          </div>
-        </div>
-
-        <!-- Simulated Email Dispatcher Card -->
-        <div class="email-simulation">
-          <div class="email-meta">
-            <i class="bi bi-envelope-fill text-info me-1"></i> <strong>Instant Alert Sent:</strong> 2fa-alert@token-secured.io &rarr; owner@account.org
-          </div>
-          <div>
-            <strong>Subject:</strong> Critical Security Alert: Password Login Blocked by 2FA
-          </div>
-          <div style="font-size: 12px; color: var(--text-dim);">
-            Enter 2FA OTP Code below to authorize or lock account.
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Enter 2FA Authenticator Code (6-Digits)</label>
-          <input type="text" id="otpCodeInput" class="form-input" placeholder="e.g. 849201" maxlength="6" style="text-align: center; font-size: 20px; letter-spacing: 4px; font-family: var(--font-mono);">
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <button class="btn btn-danger" onclick="resolve2FAAlert(false)">
-            <i class="bi bi-x-circle-fill"></i> Block & Lock Account
-          </button>
-          <button class="btn btn-success" onclick="resolve2FAAlert(true)">
-            <i class="bi bi-check-circle-fill"></i> Authorize Device
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- INTENTIONALITY CONFIRMATION ALERT POPUP MODAL -->
-    <div id="modalAlert" class="modal-overlay">
-      <div class="modal-container">
-        <div class="alert-popup-box">
-          <div class="alert-popup-title">
-            <i class="bi bi-exclamation-triangle-fill"></i> INTENTIONALITY VERIFICATION REQUIRED
-          </div>
-          <div style="font-size: 14px; color: #fff;">
-            Token <strong id="alertTokenIdDisplay" style="color: var(--primary-cyan);">[TK-XXXX]</strong> is being accessed/utilized.
-          </div>
-          <div style="font-size: 13px; color: var(--text-muted);">
-            Did you generate and share this token intentionally for this purpose?
-          </div>
-        </div>
-
-        <!-- Simulated Email Dispatcher Card -->
-        <div class="email-simulation">
-          <div class="email-meta">
-            <i class="bi bi-envelope-fill text-info me-1"></i> <strong>Email Notification Sent:</strong> security-alerts@token-secured.io &rarr; owner@account.org
-          </div>
-          <div>
-            <strong>Subject:</strong> Action Required: Confirm Token Presentation [TK-XXXX]
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <button class="btn btn-danger" onclick="resolveAlert(false)">
-            <i class="bi bi-x-circle-fill"></i> No (Block & Revoke)
-          </button>
-          <button class="btn btn-success" onclick="resolveAlert(true)">
-            <i class="bi bi-check-circle-fill"></i> Yes (Approve Intentional)
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Footer -->
     <footer class="app-footer">
-      <div>Token Secured Platform &bull; Individual Multi-Tenant 2FA Vault &bull; Blockchain Ledger</div>
+      <div>Token Secured Platform &bull; 2FA Enforcement &bull; Collaborator RBAC &bull; PR Approval Gate</div>
     </footer>
 
   </div>
