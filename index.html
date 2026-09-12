@@ -21,53 +21,104 @@
 </head>
 <body>
 
-  <!-- FIRST-TIME SIGN-UP / 2FA AUTHENTICATION GATEWAY OVERLAY -->
-  <div id="masterVaultLockScreen" class="modal-overlay active" style="z-index: 9999; background: rgba(5, 7, 12, 0.96); backdrop-filter: blur(24px);">
-    <div class="modal-container" style="max-width: 480px; text-align: center;">
-      <div style="font-size: 44px; color: var(--primary-cyan); margin-bottom: 4px;">
-        <i class="bi bi-shield-lock-fill"></i>
+  <!-- ENLARGED 2FA AUTHENTICATION & $5/MONTH SUBSCRIPTION GATEWAY OVERLAY -->
+  <div id="masterVaultLockScreen" class="modal-overlay active" style="z-index: 9999; background: rgba(3, 5, 11, 0.97); backdrop-filter: blur(28px);">
+    <div class="modal-container" style="max-width: 680px; width: 95vw; padding: 40px 48px; text-align: center;">
+      
+      <!-- Brand Header -->
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 20px;">
+        <div style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--primary-cyan), var(--accent-purple)); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #fff; box-shadow: 0 0 30px var(--primary-cyan-glow);">
+          <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <h2 id="authModalTitle" style="color: #fff; font-weight: 900; font-size: 26px; letter-spacing: -0.5px; margin-top: 6px;">TOKEN SECURED PORTAL</h2>
+        <p id="authModalSubtitle" style="font-size: 14px; color: var(--text-muted);">
+          Create your Master Account & Activate $5.00 USD/mo Workspace Subscription.
+        </p>
       </div>
-      <h2 id="authModalTitle" style="color: #fff; font-weight: 800;">TOKEN SECURED GATEWAY</h2>
-      <p id="authModalSubtitle" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-        Create your Master Account & Setup 2FA Enforcement.
-      </p>
 
-      <!-- Toggle Sign Up / Sign In -->
-      <div style="display: flex; gap: 8px; background: rgba(15, 23, 42, 0.8); padding: 4px; border-radius: var(--radius-sm); margin-bottom: 16px;">
-        <button id="toggleSignUpBtn" class="btn btn-secondary" style="flex:1; padding: 6px; font-size: 12px;" onclick="setAuthMode('signup')">
-          <i class="bi bi-person-plus-fill"></i> Create Account
+      <!-- Mode Switcher -->
+      <div style="display: flex; gap: 10px; background: rgba(15, 23, 42, 0.8); padding: 6px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-bottom: 24px;">
+        <button id="toggleSignUpBtn" class="btn btn-secondary" style="flex:1; padding: 12px; font-size: 14px; font-weight: 700;" onclick="setAuthMode('signup')">
+          <i class="bi bi-person-plus-fill me-1"></i> Create Account & Subscribe ($5/mo)
         </button>
-        <button id="toggleSignInBtn" class="btn btn-secondary" style="flex:1; padding: 6px; font-size: 12px;" onclick="setAuthMode('signin')">
-          <i class="bi bi-box-arrow-in-right"></i> Sign In (2FA)
+        <button id="toggleSignInBtn" class="btn btn-secondary" style="flex:1; padding: 12px; font-size: 14px; font-weight: 700;" onclick="setAuthMode('signin')">
+          <i class="bi bi-shield-lock-fill me-1"></i> Sign In (2FA Vault)
         </button>
+      </div>
+
+      <!-- SUBSCRIPTION TIER SELECTION CARD ($5 USD / Month) -->
+      <div id="authSubCard" class="subscription-card-box">
+        <div class="sub-header-row">
+          <span class="sub-plan-badge"><i class="bi bi-star-fill text-amber"></i> PRO WORKSPACE BUILD ACCESS</span>
+          <div>
+            <span id="subPriceTag" class="sub-price-tag">$5.00 USD</span>
+            <span class="sub-price-period">/ month</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; align-items: center; margin-top: 10px;">
+          <div>
+            <label class="form-label" style="font-size: 12px; color: var(--text-muted); text-align: left; display: block; margin-bottom: 4px;">
+              <i class="bi bi-globe me-1"></i> Select Equivalent Local Currency:
+            </label>
+            <select id="currencySelector" class="form-select" style="padding: 8px 12px; font-size: 13px; font-weight: 600;" onchange="updateSubscriptionCurrency(this.value)">
+              <option value="USD" selected>🇺🇸 $5.00 USD (United States Dollar)</option>
+              <option value="INR">🇮🇳 ₹415.00 INR (Indian Rupee)</option>
+              <option value="EUR">🇪🇺 €4.60 EUR (Euro)</option>
+              <option value="GBP">🇬🇧 £3.95 GBP (British Pound)</option>
+              <option value="CAD">🇨🇦 $6.80 CAD (Canadian Dollar)</option>
+              <option value="AUD">🇦🇺 $7.60 AUD (Australian Dollar)</option>
+              <option value="JPY">🇯🇵 ¥750 JPY (Japanese Yen)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size: 12px; color: var(--text-muted); text-align: left; display: block; margin-bottom: 4px;">
+              <i class="bi bi-credit-card-fill me-1"></i> Preferred Payment Method:
+            </label>
+            <div class="payment-method-selector">
+              <button type="button" class="pay-btn active" onclick="selectPayMethod(this)"><i class="bi bi-credit-card"></i> Card</button>
+              <button type="button" class="pay-btn" onclick="selectPayMethod(this)"><i class="bi bi-currency-bitcoin"></i> Crypto</button>
+              <button type="button" class="pay-btn" onclick="selectPayMethod(this)"><i class="bi bi-paypal"></i> PayPal</button>
+              <button type="button" class="pay-btn" onclick="selectPayMethod(this)"><i class="bi bi-qr-code"></i> UPI</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <form id="authForm" onsubmit="handleAuthSubmit(event)">
-        <div class="form-group" style="margin-bottom: 12px;">
-          <label class="form-label" style="text-align: left;">Username / Owner ID</label>
-          <input type="text" id="authUsernameInput" class="form-input" placeholder="e.g. Manoj-548" required>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div class="form-group">
+            <label class="form-label" style="text-align: left; font-size: 13px;">Username / Master Owner ID</label>
+            <input type="text" id="authUsernameInput" class="form-input" placeholder="e.g. Manoj-548" style="padding: 12px 16px; font-size: 15px;" required>
+          </div>
+
+          <div id="authEmailGroup" class="form-group">
+            <label class="form-label" style="text-align: left; font-size: 13px;">Security Email (Alerts & 2FA)</label>
+            <input type="email" id="authEmailInput" class="form-input" placeholder="owner@account.org" style="padding: 12px 16px; font-size: 15px;" required>
+          </div>
         </div>
 
-        <div id="authEmailGroup" class="form-group" style="margin-bottom: 12px;">
-          <label class="form-label" style="text-align: left;">Security Email (For 2FA & Data Loss Alerts)</label>
-          <input type="email" id="authEmailInput" class="form-input" placeholder="owner@account.org" required>
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label class="form-label" style="text-align: left; font-size: 13px;">2FA Security Master Passcode (6-Digits)</label>
+          <input type="password" id="masterPasscodeInput" class="form-input" placeholder="Enter 6-Digit 2FA Passcode" style="text-align: center; font-size: 24px; height: 56px; letter-spacing: 8px; font-family: var(--font-mono); font-weight: 800;" required>
         </div>
 
-        <div class="form-group" style="margin-bottom: 16px;">
-          <label class="form-label" style="text-align: left;">2FA Security Passcode (6-Digits)</label>
-          <input type="password" id="masterPasscodeInput" class="form-input" placeholder="Enter 6-Digit 2FA Passcode" style="text-align: center; font-size: 20px; letter-spacing: 6px; font-family: var(--font-mono);" required>
-        </div>
-
-        <button type="submit" id="authSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 14px;">
-          <i class="bi bi-shield-check"></i> Register Account & Enforce 2FA
+        <button type="submit" id="authSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 800; border-radius: var(--radius-md);">
+          <i class="bi bi-shield-check me-2"></i> Subscribe ($5/mo) & Register 2FA Account
         </button>
       </form>
 
-      <div style="font-size: 11px; color: var(--text-dim); margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-        <i class="bi bi-lock-fill text-success"></i> Mandatory 2FA TOTP &bull; PR Merge Approval Required
+      <div style="font-size: 12px; color: var(--text-dim); margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <span><i class="bi bi-check-circle-fill text-success"></i> $5.00 USD/month Subscription</span>
+        <span>&bull;</span>
+        <span><i class="bi bi-shield-lock-fill text-info"></i> 2FA Enforced</span>
+        <span>&bull;</span>
+        <span><i class="bi bi-git text-purple"></i> PR Approval Gate</span>
       </div>
     </div>
   </div>
+
 
   <div id="app">
     
@@ -104,6 +155,9 @@
 
       <!-- Header Action Pill & Active Account -->
       <div class="header-actions">
+        <div id="subStatusBadge" class="shield-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-emerald);">
+          <i class="bi bi-star-fill text-amber"></i> <span id="subStatusText" style="color: #fff; font-weight: 700;">PRO ($5.00/mo)</span>
+        </div>
         <div class="shield-badge">
           <i class="bi bi-person-circle text-info"></i> <span id="activeUserBadge">Not Logged In</span>
         </div>

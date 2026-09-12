@@ -83,24 +83,53 @@
     localStorage.setItem('cipher_blockchain', JSON.stringify(state.blockchain));
   }
 
+  // Subscription Currencies Mapping ($5.00 USD Equivalent)
+  const currencyMap = {
+    USD: "$5.00 USD",
+    INR: "₹415.00 INR",
+    EUR: "€4.60 EUR",
+    GBP: "£3.95 GBP",
+    CAD: "$6.80 CAD",
+    AUD: "$7.60 AUD",
+    JPY: "¥750 JPY"
+  };
+
+  // Currency Converter Switcher
+  window.updateSubscriptionCurrency = function (curr) {
+    const priceTag = document.getElementById('subPriceTag');
+    if (priceTag && currencyMap[curr]) {
+      priceTag.textContent = currencyMap[curr];
+    }
+  };
+
+  // Payment Method Selector Toggle
+  window.selectPayMethod = function (btnElement) {
+    const buttons = document.querySelectorAll('.payment-method-selector .pay-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    btnElement.classList.add('active');
+  };
+
   // Toggle Auth Mode (Sign Up vs Sign In)
   window.setAuthMode = function (mode) {
     state.authMode = mode;
     const title = document.getElementById('authModalTitle');
     const subtitle = document.getElementById('authModalSubtitle');
     const emailGroup = document.getElementById('authEmailGroup');
+    const subCard = document.getElementById('authSubCard');
     const submitBtn = document.getElementById('authSubmitBtn');
 
     if (mode === 'signup') {
       if (title) title.textContent = "CREATE MASTER 2FA ACCOUNT";
-      if (subtitle) subtitle.textContent = "Setup your individual Master Account & Enforce 2FA.";
+      if (subtitle) subtitle.textContent = "Setup your individual Master Account & Activate $5.00 USD/mo Workspace Subscription.";
       if (emailGroup) emailGroup.style.display = 'block';
-      if (submitBtn) submitBtn.innerHTML = '<i class="bi bi-person-plus-fill"></i> Create Account & Setup 2FA';
+      if (subCard) subCard.style.display = 'block';
+      if (submitBtn) submitBtn.innerHTML = '<i class="bi bi-shield-check me-2"></i> Subscribe ($5/mo) & Register 2FA Account';
     } else {
       if (title) title.textContent = "TOKEN SECURED SIGN IN";
       if (subtitle) subtitle.textContent = "Enter your username & 2FA passcode to decrypt vault.";
       if (emailGroup) emailGroup.style.display = 'none';
-      if (submitBtn) submitBtn.innerHTML = '<i class="bi bi-shield-lock-fill"></i> Authenticate & Decrypt Vault';
+      if (subCard) subCard.style.display = 'none';
+      if (submitBtn) submitBtn.innerHTML = '<i class="bi bi-shield-lock-fill me-2"></i> Authenticate & Decrypt Vault';
     }
   };
 
@@ -110,6 +139,8 @@
     const username = document.getElementById('authUsernameInput').value.trim();
     const email = document.getElementById('authEmailInput').value.trim();
     const passcode = document.getElementById('masterPasscodeInput').value.trim();
+    const selectedCurr = document.getElementById('currencySelector') ? document.getElementById('currencySelector').value : 'USD';
+    const subPrice = currencyMap[selectedCurr] || "$5.00 USD";
 
     if (!username || !passcode) {
       alert("Please enter username and 2FA passcode.");
@@ -123,24 +154,33 @@
         return;
       }
 
-      // Register New Account
+      // Register New Account with $5/month Subscription Active
       state.users[username] = {
         email: email || `${username.toLowerCase()}@token-secured.io`,
         passcode: passcode,
-        createdAt: new Date().toLocaleString()
+        createdAt: new Date().toLocaleString(),
+        subscription: {
+          active: true,
+          plan: "Pro Workspace Build Access",
+          rate: "$5.00 USD / month",
+          billingCurrency: selectedCurr,
+          chargedAmount: subPrice,
+          renewsOn: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+        }
       };
 
       state.currentUser = username;
       state.vaultUnlocked = true;
       saveState();
 
-      appendBlockchainBlock("ACCOUNT_REGISTERED", {
+      appendBlockchainBlock("ACCOUNT_REGISTERED_SUBSCRIBED", {
         user: username,
         email: state.users[username].email,
+        subscription: `${subPrice} / month ACTIVE`,
         status: "2FA_ENFORCED"
       });
 
-      alert(`✅ Account Created! Master Account [${username}] registered with 2FA protection!`);
+      alert(`✅ Subscription Active! Master Account [${username}] registered with $5/month Pro Build Access & 2FA protection!`);
     } else {
       // Sign In
       const user = state.users[username];
@@ -157,6 +197,7 @@
         alert(`⛔ 2FA Security Alert: Invalid 2FA Passcode! Security notification sent to ${user.email}.`);
         return;
       }
+
 
       state.currentUser = username;
       state.vaultUnlocked = true;
