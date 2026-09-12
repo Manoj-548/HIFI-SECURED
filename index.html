@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CipherVault - Ultra-Secure Invisible Token & Blockchain Platform</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- PWA & Mobile Web App Settings -->
+  <meta name="theme-color" content="#07090e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <div id="app">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <a href="#" class="brand-logo">
+        <div class="brand-icon">
+          <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <div>
+          <div class="brand-title">CIPHERVAULT</div>
+          <div class="brand-subtitle">Invisible Token & Blockchain Ledger</div>
+        </div>
+      </a>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-view="dashboard" onclick="switchView('dashboard')">
+          <i class="bi bi-grid-fill"></i> Dashboard
+        </button>
+        <button class="nav-tab" data-view="tokens" onclick="switchView('tokens')">
+          <i class="bi bi-key-fill"></i> Invisible Tokens
+        </button>
+        <button class="nav-tab" data-view="blockchain" onclick="switchView('blockchain')">
+          <i class="bi bi-link-45deg"></i> Audit Ledger
+        </button>
+        <button class="nav-tab" data-view="alerts" onclick="switchView('alerts')">
+          <i class="bi bi-bell-fill"></i> Alerts <span id="navAlertBadge" class="badge badge-pending" style="display:none;">0</span>
+        </button>
+      </nav>
+
+      <!-- Header Action Pill -->
+      <div class="header-actions">
+        <div class="shield-badge">
+          <span class="dot"></span> AES-256 / SHA-256 ACTIVE
+        </div>
+        <button class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;" onclick="openVerificationModal()">
+          <i class="bi bi-qr-code-scan"></i> Verify Token
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Views Container -->
+    <main id="viewContainer">
+      
+      <!-- DASHBOARD VIEW -->
+      <div id="viewDashboard" class="view-panel">
+        
+        <!-- Stats Row -->
+        <div class="stats-container" style="margin-bottom: 20px;">
+          <div class="stat-box">
+            <div class="stat-icon cyan"><i class="bi bi-eye-slash-fill"></i></div>
+            <div>
+              <div class="stat-val" id="statInvisibleTokens">0</div>
+              <div class="stat-lbl">Invisible Obfuscated Tokens</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon purple"><i class="bi bi-boxes"></i></div>
+            <div>
+              <div class="stat-val" id="statBlockCount">1</div>
+              <div class="stat-lbl">Blockchain Ledger Height</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon amber"><i class="bi bi-shield-exclamation"></i></div>
+            <div>
+              <div class="stat-val" id="statPendingAlerts">0</div>
+              <div class="stat-lbl">Intentionality Alerts</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon emerald"><i class="bi bi-check-circle-fill"></i></div>
+            <div>
+              <div class="stat-val" id="statVerifiedUses">0</div>
+              <div class="stat-lbl">Authorized Token Usages</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          
+          <!-- Token Creation Generator Card -->
+          <div class="card gen-card">
+            <div class="card-title">
+              <span><i class="bi bi-plus-circle-fill card-title-icon me-2"></i> Generate New Invisible Token</span>
+              <span class="badge badge-active"><i class="bi bi-shield-check"></i> Zero-Knowledge Protected</span>
+            </div>
+
+            <form id="tokenGenForm" onsubmit="handleTokenGenerate(event)">
+              <div class="form-group">
+                <label class="form-label">Token Label / Purpose</label>
+                <input type="text" id="tokenLabelInput" class="form-input" placeholder="e.g. API Access / External Client Authorization" required>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                <div class="form-group">
+                  <label class="form-label">Expiration Period</label>
+                  <select id="tokenExpiryInput" class="form-select">
+                    <option value="15">15 Minutes (High Security)</option>
+                    <option value="60" selected>1 Hour</option>
+                    <option value="1440">24 Hours</option>
+                    <option value="10080">7 Days</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Intentionality Requirement</label>
+                  <select id="tokenAlertLevelInput" class="form-select">
+                    <option value="strict" selected>Strict Real-Time Push & Email Alert</option>
+                    <option value="standard">Standard Account Notification</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+                <i class="bi bi-lock-fill"></i> Create & Mask Invisible Token
+              </button>
+            </form>
+          </div>
+
+          <!-- Blockchain Live Block Stream Card -->
+          <div class="card blockchain-card">
+            <div class="card-title">
+              <span><i class="bi bi-boxes card-title-icon me-2"></i> Blockchain Audit Ledger</span>
+              <span class="badge badge-active">SHA-256 Linked</span>
+            </div>
+            
+            <div id="blockchainStream" class="block-chain-list">
+              <!-- Blocks populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Invisible Tokens Table Card -->
+          <div class="card tokens-card">
+            <div class="card-title">
+              <span><i class="bi bi-key-fill card-title-icon me-2"></i> Active Obfuscated Tokens</span>
+              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="simulateExternalShareAttempt()">
+                <i class="bi bi-share-fill"></i> Simulate Token Utilization Share
+              </button>
+            </div>
+
+            <div class="tokens-table-wrap">
+              <table class="tokens-table">
+                <thead>
+                  <tr>
+                    <th>Token ID</th>
+                    <th>Label / Purpose</th>
+                    <th>Invisible Token Code (Obfuscated)</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tokensTableBody">
+                  <!-- Token rows populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- REVEAL TOKEN MODAL (Shown ONLY Once Upon Generation) -->
+    <div id="modalReveal" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title"><i class="bi bi-eye-fill text-info"></i> One-Time Token Secret Reveal</div>
+          <button class="modal-close" onclick="closeModal('modalReveal')"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="reveal-box">
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Copy this token string now. Once you close this modal, it will become <strong>permanently invisible</strong> and obfuscated as a zero-knowledge hash.
+          </div>
+          <div id="revealTokenCode" class="reveal-token">TK-XXXX-XXXX</div>
+          <div>
+            <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 12px;" onclick="copyRevealToken()">
+              <i class="bi bi-clipboard-check"></i> Copy Secret Token
+            </button>
+          </div>
+        </div>
+
+        <div style="font-size: 12px; color: var(--accent-amber); display: flex; align-items: center; gap: 6px;">
+          <i class="bi bi-shield-exclamation"></i> Shared use of this token will trigger instant push & email confirmation alerts.
+        </div>
+
+        <button class="btn btn-primary" onclick="closeModal('modalReveal')">
+          <i class="bi bi-check-lg"></i> I Have Copied It (Mask Token Now)
+        </button>
+      </div>
+    </div>
+
+    <!-- VERIFY TOKEN MODAL -->
+    <div id="modalVerify" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div class="modal-title"><i class="bi bi-qr-code-scan text-info"></i> Verify Token Presentation</div>
+          <button class="modal-close" onclick="closeModal('modalVerify')"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Enter or Paste Token String</label>
+          <input type="text" id="verifyTokenInput" class="form-input" placeholder="e.g. TK-8942-XXXX-XXXX" required>
+        </div>
+
+        <button class="btn btn-primary" onclick="executeTokenVerification()">
+          <i class="bi bi-shield-lock-fill"></i> Trigger Verification & Request Intentionality Confirmation
+        </button>
+      </div>
+    </div>
+
+    <!-- INTENTIONALITY CONFIRMATION ALERT POPUP MODAL -->
+    <div id="modalAlert" class="modal-overlay">
+      <div class="modal-container">
+        <div class="alert-popup-box">
+          <div class="alert-popup-title">
+            <i class="bi bi-exclamation-triangle-fill"></i> INTENTIONALITY VERIFICATION REQUIRED
+          </div>
+          <div style="font-size: 14px; color: #fff;">
+            Token <strong id="alertTokenIdDisplay" style="color: var(--primary-cyan);">[TK-XXXX]</strong> is being accessed/utilized.
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Did you generate and share this token intentionally for this purpose?
+          </div>
+        </div>
+
+        <!-- Simulated Email Dispatcher Card -->
+        <div class="email-simulation">
+          <div class="email-meta">
+            <i class="bi bi-envelope-fill text-info me-1"></i> <strong>Email Notification Sent:</strong> security-alerts@cipher-vault.io &rarr; owner@account.org
+          </div>
+          <div>
+            <strong>Subject:</strong> Action Required: Confirm Token Presentation [TK-XXXX]
+          </div>
+          <div style="font-size: 12px; color: var(--text-dim);">
+            Timestamp: <span id="alertTimestamp">Just now</span> | IP: 192.168.1.100 (Client Request)
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <button class="btn btn-danger" onclick="resolveAlert(false)">
+            <i class="bi bi-x-circle-fill"></i> No (Block & Revoke)
+          </button>
+          <button class="btn btn-success" onclick="resolveAlert(true)">
+            <i class="bi bi-check-circle-fill"></i> Yes (Approve Intentional)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>CipherVault Secure Cryptographic Token System &bull; Zero-Knowledge Commitment &bull; Native PWA & App Store Deployment Ready</div>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
