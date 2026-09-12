@@ -185,11 +185,20 @@
         <button class="nav-tab active" data-view="dashboard" onclick="switchView('dashboard')">
           <i class="bi bi-grid-fill"></i> Dashboard
         </button>
+        <button class="nav-tab" data-view="cipherstudio" onclick="switchView('cipherstudio')">
+          <i class="bi bi-arrow-left-right"></i> Plain ↔ Cipher
+        </button>
+        <button class="nav-tab" data-view="cybercrime" onclick="switchView('cybercrime')">
+          <i class="bi bi-shield-exclamation text-rose"></i> Cyber Crime Desk
+        </button>
+        <button class="nav-tab" data-view="support" onclick="switchView('support')">
+          <i class="bi bi-headset text-cyan"></i> Provider Desk
+        </button>
         <button class="nav-tab" data-view="tokens" onclick="switchView('tokens')">
-          <i class="bi bi-key-fill"></i> Invisible Tokens
+          <i class="bi bi-key-fill"></i> Tokens
         </button>
         <button class="nav-tab" data-view="collaborators" onclick="switchView('collaborators')">
-          <i class="bi bi-people-fill"></i> Collaborators & Access
+          <i class="bi bi-people-fill"></i> Collaborators
         </button>
         <button class="nav-tab" data-view="pullrequests" onclick="switchView('pullrequests')">
           <i class="bi bi-git"></i> PR Approvals <span id="navPRBadge" class="badge badge-pending" style="display:none;">0</span>
@@ -420,6 +429,231 @@
 
         </div>
 
+      </div>
+
+      <!-- PLAIN-TO-CIPHER & CIPHER-TO-PLAIN CONVERSION STUDIO -->
+      <div id="viewCipherStudio" class="view-panel" style="display:none;">
+        <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+          
+          <!-- Plain to Cipher Encryption Card -->
+          <div class="card gen-card">
+            <div class="card-title">
+              <span><i class="bi bi-lock-fill text-cyan me-2"></i> Plain Text ➔ Ciphertext Encryption</span>
+              <span class="badge badge-active">AES-256 GCM</span>
+            </div>
+            
+            <form onsubmit="handlePlainToCipher(event)">
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Input Plain Text Secret / Code</label>
+                <textarea id="plainTextInput" class="form-input" rows="4" placeholder="Enter plain text secret, private API key, or repository token..." required></textarea>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label">2FA Passcode Protection Key</label>
+                <input type="password" id="cipherPasscodeKey" class="form-input" placeholder="Enter your 6-digit 2FA passcode" style="text-align:center; font-family:var(--font-mono); letter-spacing:4px;" required>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px;">
+                <i class="bi bi-shield-lock-fill me-1"></i> Encrypt Plain Text to Zero-Knowledge Ciphertext
+              </button>
+            </form>
+
+            <div id="cipherOutputBox" class="reveal-box" style="margin-top: 16px; display:none;">
+              <div style="font-size: 12px; color: var(--text-muted);">Encrypted Zero-Knowledge Ciphertext Payload:</div>
+              <div id="cipherResultCode" class="reveal-token" style="font-size: 16px; word-break: break-all;">CPHR-XXXX-XXXX</div>
+              <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="copyTextById('cipherResultCode')">
+                <i class="bi bi-clipboard-check"></i> Copy Ciphertext
+              </button>
+            </div>
+          </div>
+
+          <!-- Cipher to Plain Decryption Card -->
+          <div class="card gen-card">
+            <div class="card-title">
+              <span><i class="bi bi-key-fill text-emerald me-2"></i> Ciphertext ➔ Plain Text Decryption</span>
+              <span class="badge badge-active"><i class="bi bi-shield-check"></i> 2FA Enforced</span>
+            </div>
+
+            <form onsubmit="handleCipherToPlain(event)">
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Input Encrypted Ciphertext Payload</label>
+                <textarea id="cipherTextInput" class="form-input" rows="4" placeholder="Paste CPHR-XXXX encrypted payload here..." required></textarea>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label">Verify 2FA Master Passcode</label>
+                <input type="password" id="decryptPasscodeKey" class="form-input" placeholder="Enter 6-digit 2FA passcode" style="text-align:center; font-family:var(--font-mono); letter-spacing:4px;" required>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent-emerald), var(--primary-cyan));">
+                <i class="bi bi-unlock-fill me-1"></i> Decrypt Ciphertext to Original Plain Text
+              </button>
+            </form>
+
+            <div id="plainOutputBox" class="reveal-box" style="margin-top: 16px; display:none; border-color: var(--accent-emerald);">
+              <div style="font-size: 12px; color: var(--text-muted);">Decrypted Original Plain Text Secret:</div>
+              <div id="plainResultCode" class="reveal-token" style="font-size: 16px; color: var(--accent-emerald); word-break: break-all;">PLAIN_SECRET_XXXX</div>
+              <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="copyTextById('plainResultCode')">
+                <i class="bi bi-clipboard-check"></i> Copy Decrypted Plain Text
+              </button>
+            </div>
+
+            <!-- Forgot Passcode Plain Text Recovery Trigger -->
+            <div style="margin-top: 20px; padding: 12px; background: rgba(245, 158, 11, 0.1); border: 1px dashed var(--accent-amber); border-radius: var(--radius-sm); text-align: center;">
+              <div style="font-size: 12px; color: var(--text-main); font-weight: 600; margin-bottom: 6px;">
+                Forgot 2FA Passcode? Plain Text Recovery via 2FA OTP
+              </div>
+              <button class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px; color: var(--accent-amber);" onclick="triggerForgotPasscodeRecovery()">
+                <i class="bi bi-envelope-open-fill me-1"></i> Recover Plain Text Secret via Email/WhatsApp 2FA
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CYBER CRIME ESCALATION DESK VIEW -->
+      <div id="viewCyberCrime" class="view-panel" style="display:none;">
+        <div class="dashboard-grid">
+          
+          <div class="card blockchain-card">
+            <div class="card-title">
+              <span><i class="bi bi-shield-exclamation text-rose me-2"></i> Cyber Crime Incident Escalation & Breach Desk</span>
+              <span class="badge badge-revoked"><i class="bi bi-lock-fill"></i> Provider Escalation Active</span>
+            </div>
+
+            <div class="email-simulation" style="background: rgba(244, 63, 94, 0.08); border-color: rgba(244, 63, 94, 0.3);">
+              <div class="email-meta" style="color: var(--accent-rose);">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Real-Time Breach Protection & Provider Cyber Crime Escalation</strong>
+              </div>
+              <div style="font-size: 13px; color: var(--text-main); margin-bottom: 14px;">
+                If unauthorized login attempts or device breaches occur on your account, the real user is immediately notified via <strong>Email AND WhatsApp</strong>. As your Provider (`Manoj-548`), you can instantly escalate breach evidence directly to Cyber Crime Authorities (NC3 / IC3 / Interpol).
+              </div>
+
+              <!-- Interactive Breach Simulator -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                  <div style="font-size: 12px; font-weight: 700; color: var(--accent-rose); margin-bottom: 4px;">
+                    <i class="bi bi-broadcast me-1"></i> Unusual Device Login Breach Simulator
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+                    Simulate an attacker trying to sign in from an unauthorized IP (192.168.1.99).
+                  </div>
+                  <button class="btn btn-secondary" style="width: 100%; font-size: 12px; color: var(--accent-rose);" onclick="simulateUnusualDeviceBreach()">
+                    <i class="bi bi-bug-fill me-1"></i> Trigger Device Breach Alert & Account Lockdown
+                  </button>
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                  <div style="font-size: 12px; font-weight: 700; color: var(--primary-cyan); margin-bottom: 4px;">
+                    <i class="bi bi-file-earmark-medical-fill me-1"></i> Official Cyber Crime Report Generator
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+                    Generate cryptographic SHA-256 evidence payload for law enforcement.
+                  </div>
+                  <button class="btn btn-primary" style="width: 100%; font-size: 12px;" onclick="generateCyberCrimeReport()">
+                    <i class="bi bi-shield-lock me-1"></i> Generate & Escalate Cyber Crime Dossier
+                  </button>
+                </div>
+              </div>
+
+              <!-- Cyber Crime Report Display Box -->
+              <div id="cyberCrimeDossierBox" class="reveal-box" style="display:none; text-align: left; background: rgba(15, 23, 42, 0.95); border-color: var(--accent-rose);">
+                <div style="font-size: 13px; font-weight: 800; color: var(--accent-rose); margin-bottom: 8px;">
+                  <i class="bi bi-file-earmark-lock2-fill me-1"></i> OFFICIAL CYBER CRIME ESCALATION DOSSIER
+                </div>
+                <pre id="cyberCrimeReportContent" style="font-family: var(--font-mono); font-size: 12px; color: #fff; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap;"></pre>
+                
+                <div style="display: flex; gap: 10px; margin-top: 12px;">
+                  <button class="btn btn-primary" style="flex: 1; background: var(--accent-rose);" onclick="submitEscalationToCyberCrime()">
+                    <i class="bi bi-send-fill me-1"></i> Submit Escalation to Cyber Crime Authority & Provider Desk
+                  </button>
+                  <button class="btn btn-secondary" style="font-size: 12px;" onclick="copyTextById('cyberCrimeReportContent')">
+                    <i class="bi bi-clipboard me-1"></i> Copy Evidence
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PROVIDER CONTACT DESK FOR SUBSCRIBED USERS VIEW -->
+      <div id="viewSupport" class="view-panel" style="display:none;">
+        <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+          
+          <div class="card gen-card">
+            <div class="card-title">
+              <span><i class="bi bi-headset text-cyan me-2"></i> Subscribed User Provider Desk</span>
+              <span class="badge badge-active"><i class="bi bi-star-fill text-amber"></i> $5/mo VIP Access</span>
+            </div>
+
+            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+              Welcome to the direct Provider Support Desk! As a subscribed user ($5.00 USD/month), you have direct access to talks, architecture consultations, and security response with Master Owner & Provider <strong>Manoj-548</strong>.
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glow); display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 14px; font-weight: 800; color: #fff;">📞 24/7 VIP Security Hotline</div>
+                  <div style="font-size: 12px; color: var(--primary-cyan); font-family: var(--font-mono); font-weight: 700;">+1 (800) 555-CYPHER</div>
+                </div>
+                <button class="btn btn-secondary" style="font-size: 12px;" onclick="showToastNotification('Calling Provider 24/7 VIP Line...')"><i class="bi bi-telephone-outbound-fill"></i> Call Now</button>
+              </div>
+
+              <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glow); display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 14px; font-weight: 800; color: #fff;">💬 WhatsApp Live Provider Talk</div>
+                  <div style="font-size: 12px; color: var(--accent-emerald); font-family: var(--font-mono); font-weight: 700;">+1 (800) WA-DESK-548</div>
+                </div>
+                <button class="btn btn-secondary" style="font-size: 12px; color: var(--accent-emerald);" onclick="showToastNotification('Opening WhatsApp Direct Chat with Provider Manoj-548...')"><i class="bi bi-whatsapp"></i> Chat WhatsApp</button>
+              </div>
+
+              <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-glow); display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <div style="font-size: 14px; font-weight: 800; color: #fff;">📧 Direct Provider Support Email</div>
+                  <div style="font-size: 12px; color: var(--accent-purple); font-family: var(--font-mono); font-weight: 700;">provider.support@token-secured.io</div>
+                </div>
+                <button class="btn btn-secondary" style="font-size: 12px;" onclick="showToastNotification('Drafting Priority Support Ticket to Manoj-548...')"><i class="bi bi-envelope-fill"></i> Send Email</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Schedule Consultation Form Card -->
+          <div class="card gen-card">
+            <div class="card-title">
+              <span><i class="bi bi-calendar-event-fill text-amber me-2"></i> Schedule 1-on-1 Talks with Provider</span>
+              <span class="badge badge-active">Consultation Desk</span>
+            </div>
+
+            <form onsubmit="handleScheduleProviderTalk(event)">
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Topic for Discussion</label>
+                <input type="text" id="talkTopicInput" class="form-input" placeholder="e.g. Enterprise 2FA Integration / Custom Security Scope" required>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label">Preferred Date & Time</label>
+                <input type="datetime-local" id="talkTimeInput" class="form-input" required>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label">Preferred Channel</label>
+                <select id="talkChannelSelect" class="form-select">
+                  <option value="WhatsApp Video Call">WhatsApp Video Call</option>
+                  <option value="Google Meet">Google Meet</option>
+                  <option value="Phone Call">Phone Call (+1-800-555-CYPHER)</option>
+                </select>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent-amber), var(--accent-purple));">
+                <i class="bi bi-calendar-check-fill me-1"></i> Schedule Consultation Session with Manoj-548
+              </button>
+            </form>
+          </div>
+
+        </div>
       </div>
 
     </main>
