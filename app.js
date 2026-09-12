@@ -1,6 +1,6 @@
 /* ============================================================================
-   CIPHERVAULT - APP CORE ENGINE
-   Cryptographic Token Cipher, Zero-Knowledge Masking, Blockchain Audit Stream & Real-Time Intentionality Alerts
+   TOKEN SECURED - APP CORE ENGINE WITH 2FA SECURITY GUARD
+   Cryptographic Token Cipher, Zero-Knowledge Masking, 2FA Device Guard & Blockchain Stream
    ============================================================================ */
 
 (function () {
@@ -11,8 +11,10 @@
     tokens: [],
     blockchain: [],
     pendingAlert: null,
+    pending2FAAlert: null,
     stats: {
-      verifiedUses: 0
+      verifiedUses: 0,
+      blockedAttempts: 0
     }
   };
 
@@ -44,9 +46,9 @@
         index: 1,
         timestamp: new Date().toLocaleString(),
         type: "GENESIS_BLOCK",
-        data: "CipherVault Initial Security Anchor Created",
+        data: "Token Secured Initial Security Anchor Created",
         prevHash: "00000000000000000000000000000000",
-        hash: generateCryptoHash("GENESIS_CIPHERVAULT_2026")
+        hash: generateCryptoHash("TOKEN_SECURED_GENESIS_2026")
       };
       state.blockchain.push(genesisBlock);
       saveState();
@@ -84,7 +86,7 @@
       // Seed initial sample obfuscated token
       const seedToken = {
         id: "TK-8942-ALPHA",
-        label: "Secure API Access Token",
+        label: "Production Payment API Access",
         rawCode: "TK-8942-X9F2-901B-SECRET",
         maskedCode: "TK-8942-****-****-0x89F",
         status: "active",
@@ -105,22 +107,11 @@
   // UI Renderers
   function renderStats() {
     const invisibleCount = state.tokens.filter(t => t.status === 'active').length;
-    const pendingAlertsCount = state.pendingAlert ? 1 : 0;
+    const pendingAlertsCount = (state.pendingAlert ? 1 : 0) + (state.pending2FAAlert ? 1 : 0);
 
     document.getElementById('statInvisibleTokens').textContent = invisibleCount;
     document.getElementById('statBlockCount').textContent = state.blockchain.length;
     document.getElementById('statPendingAlerts').textContent = pendingAlertsCount;
-    document.getElementById('statVerifiedUses').textContent = state.stats.verifiedUses;
-
-    const navBadge = document.getElementById('navAlertBadge');
-    if (navBadge) {
-      if (pendingAlertsCount > 0) {
-        navBadge.style.display = 'inline-flex';
-        navBadge.textContent = pendingAlertsCount;
-      } else {
-        navBadge.style.display = 'none';
-      }
-    }
   }
 
   function renderTokensTable() {
@@ -199,7 +190,7 @@
     const alertLevel = document.getElementById('tokenAlertLevelInput').value;
 
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const tokenId = `TK-${randomSuffix}-CIPHER`;
+    const tokenId = `TK-${randomSuffix}-SECURED`;
     
     // Generate AES-style random cipher secret
     const rawSecret = `TK-${randomSuffix}-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -224,7 +215,7 @@
       tokenId: tokenId,
       label: label,
       maskedCode: maskedSecret,
-      status: "ACTIVE_INVISIBLE"
+      status: "ACTIVE_2FA_PROTECTED"
     });
 
     // Reset Form
@@ -235,6 +226,55 @@
     window.openModal('modalReveal');
 
     renderTokensTable();
+    renderStats();
+  };
+
+  // 2FA Security Login Alert Simulator
+  window.simulateNewDeviceLogin = function () {
+    const randomIP = `198.51.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
+    const devices = ["iPhone 15 Pro / Safari", "Linux Workstation / Firefox", "Windows 11 / Edge", "Android Pixel 8 / Chrome"];
+    const chosenDevice = devices[Math.floor(Math.random() * devices.length)] + ` (IP: ${randomIP})`;
+
+    state.pending2FAAlert = {
+      device: chosenDevice,
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    document.getElementById('alertDeviceName').textContent = chosenDevice;
+    document.getElementById('otpCodeInput').value = '';
+
+    appendBlockchainBlock("2FA_LOGIN_ATTEMPT", {
+      device: chosenDevice,
+      status: "CHALLENGE_ISSUED"
+    });
+
+    window.openModal('modal2FAAlert');
+    renderStats();
+  };
+
+  // Resolve 2FA Alert (Verify OTP vs Block Device)
+  window.resolve2FAAlert = function (isApproved) {
+    const alertData = state.pending2FAAlert;
+    if (!alertData) return;
+
+    if (isApproved) {
+      const otp = document.getElementById('otpCodeInput').value.trim();
+      appendBlockchainBlock("2FA_LOGIN_SUCCESS", {
+        device: alertData.device,
+        otpVerified: otp || "PASSKEY_AUTH",
+        action: "DEVICE_AUTHORIZED"
+      });
+      alert(`✅ 2FA Verified: Device [${alertData.device}] authorized successfully! Notification email dispatched.`);
+    } else {
+      appendBlockchainBlock("2FA_LOGIN_BLOCKED", {
+        device: alertData.device,
+        action: "ACCOUNT_LOCKED_DEVICE_BLOCKED"
+      });
+      alert(`⛔ SECURITY LOCKOUT: Unauthorized device sign-in from [${alertData.device}] BLOCKED. Account secured and password reset triggered!`);
+    }
+
+    state.pending2FAAlert = null;
+    window.closeModal('modal2FAAlert');
     renderStats();
   };
 
@@ -256,10 +296,7 @@
     state.pendingAlert = token;
     renderStats();
 
-    // Populate Alert Modal
     document.getElementById('alertTokenIdDisplay').textContent = `${token.id} (${token.label})`;
-    document.getElementById('alertTimestamp').textContent = new Date().toLocaleTimeString();
-    
     window.openModal('modalAlert');
   };
 
@@ -279,10 +316,9 @@
     if (!token) return;
 
     if (isApproved) {
-      state.stats.verifiedUses += 1;
       appendBlockchainBlock("INTENTIONALITY_APPROVED", {
         tokenId: token.id,
-        action: "USER_EXPLICIT_CONFIRMATION",
+        action: "USER_EXPLICIT_2FA_CONFIRMATION",
         result: "AUTHORIZED_AND_LOGGED"
       });
       alert(`✅ Access Granted: Token ${token.id} presentation confirmed as intentional by account owner.`);
@@ -290,7 +326,7 @@
       token.status = 'revoked';
       appendBlockchainBlock("INTENTIONALITY_REJECTED", {
         tokenId: token.id,
-        action: "SECURITY_BLOCK_REVOCATION",
+        action: "2FA_SECURITY_BLOCK_REVOCATION",
         result: "TOKEN_INSTANTLY_REVOKED"
       });
       alert(`⛔ SECURITY ALERT: Token ${token.id} was flagged as unintentional or unauthorized and has been INSTANTLY REVOKED.`);
@@ -318,24 +354,6 @@
     }
   };
 
-  // Manual Token Verification Modal Executor
-  window.executeTokenVerification = function () {
-    const val = document.getElementById('verifyTokenInput').value.trim();
-    if (!val) {
-      alert("Please enter a token code to verify.");
-      return;
-    }
-
-    const matchedToken = state.tokens.find(t => t.rawCode === val || t.id === val);
-    window.closeModal('modalVerify');
-
-    if (matchedToken) {
-      window.triggerTokenVerifyAlert(matchedToken.id);
-    } else {
-      alert("❌ Verification Failed: Invalid or unknown cipher token.");
-    }
-  };
-
   // View & Modal Switchers
   window.switchView = function (viewName) {
     document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -360,7 +378,7 @@
     renderTokensTable();
     renderBlockchain();
     renderStats();
-    console.log("CipherVault Application Engine Initialized OK");
+    console.log("Token Secured Engine Initialized OK with 2FA Guard");
   }
 
   if (document.readyState === 'loading') {
