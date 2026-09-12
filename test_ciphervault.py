@@ -14,6 +14,12 @@ async def main():
         title = await page.title()
         print(f"Page Title: {title}")
 
+        # 0. Unlock Anti-Theft Master Vault Screen
+        print("Unlocking Anti-Theft Master Security Vault...")
+        await page.fill("#masterPasscodeInput", "123456")
+        await page.click("button[onclick='unlockMasterVault()']")
+        await page.wait_for_timeout(500)
+
         # 1. Generate Token
         await page.fill("#tokenLabelInput", "Production Payment API Token")
         await page.select_option("#tokenExpiryInput", "60")
@@ -25,14 +31,14 @@ async def main():
         await page.click("#modalReveal button.btn-primary")
         await page.wait_for_timeout(500)
 
-        # 2. Test 2FA Security Login Alert Simulator
-        print("Testing 2FA Security Device Sign-In Alert Simulator...")
+        # 2. Test Stolen Password Attempt Alert Simulator
+        print("Testing Stolen Password / 2FA Security Alert Simulator...")
         await page.click("button[onclick='simulateNewDeviceLogin()']")
         await page.wait_for_timeout(600)
 
         # Check 2FA Alert Modal
         alert_title = await page.inner_text("#modal2FAAlert .alert-popup-title")
-        print(f"2FA Security Alert Popup Displayed: {alert_title}")
+        print(f"2FA Anti-Theft Alert Popup Displayed: {alert_title}")
 
         # Fill 2FA OTP Code
         await page.fill("#otpCodeInput", "849201")
@@ -43,7 +49,7 @@ async def main():
         video_path = await page.video.path()
         await context.close()
         await browser.close()
-        print(f"SUCCESS: 2FA & Token Secured Automated Test completed & recorded to {video_path}")
+        print(f"SUCCESS: Anti-Theft & Token Secured Automated Test completed & recorded to {video_path}")
 
 if __name__ == '__main__':
     asyncio.run(main())

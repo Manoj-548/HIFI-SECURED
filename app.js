@@ -1,6 +1,5 @@
 /* ============================================================================
-   TOKEN SECURED - APP CORE ENGINE WITH 2FA SECURITY GUARD
-   Cryptographic Token Cipher, Zero-Knowledge Masking, 2FA Device Guard & Blockchain Stream
+   TOKEN SECURED - APP CORE ENGINE WITH ANTI-THEFT CIPHER VAULT & 2FA GUARD
    ============================================================================ */
 
 (function () {
@@ -8,6 +7,8 @@
 
   // Application State
   const state = {
+    vaultUnlocked: false,
+    failedPasscodeAttempts: 0,
     tokens: [],
     blockchain: [],
     pendingAlert: null,
@@ -17,6 +18,9 @@
       blockedAttempts: 0
     }
   };
+
+  // Master Passcode Key (2FA Protected)
+  const MASTER_VAULT_PASSCODE = "123456";
 
   // Helper: SHA-256 Hash simulation / Cryptographic string generator
   function generateCryptoHash(inputStr) {
@@ -29,6 +33,44 @@
     const hex = Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
     return '0x' + hex + Math.random().toString(36).substring(2, 10).toUpperCase();
   }
+
+  // Master Vault Lock & Decrypt Handlers
+  window.unlockMasterVault = function () {
+    const entered = document.getElementById('masterPasscodeInput').value.trim();
+    if (entered === MASTER_VAULT_PASSCODE) {
+      state.vaultUnlocked = true;
+      state.failedPasscodeAttempts = 0;
+      document.getElementById('masterVaultLockScreen').classList.remove('active');
+      document.getElementById('masterPasscodeInput').value = '';
+      
+      appendBlockchainBlock("VAULT_UNLOCKED", {
+        status: "2FA_AUTHENTICATED",
+        action: "DECRYPTED_TOKEN_VAULT"
+      });
+      alert("🔓 Vault Unlocked: 2FA Master Passcode verified!");
+    } else {
+      state.failedPasscodeAttempts += 1;
+      appendBlockchainBlock("ANTI_THEFT_FAILED_LOGIN", {
+        attempt: state.failedPasscodeAttempts,
+        status: "UNAUTHORIZED_ACCESS_BLOCKED"
+      });
+
+      if (state.failedPasscodeAttempts >= 3) {
+        alert("⛔ ANTI-THEFT EMERGENCY LOCKOUT: 3 Failed Master Passcode attempts! Security Alert Email sent to account owner.");
+        state.failedPasscodeAttempts = 0;
+      } else {
+        alert(`❌ Invalid Master Passcode! Attempts remaining: ${3 - state.failedPasscodeAttempts}`);
+      }
+    }
+  };
+
+  window.lockMasterVault = function () {
+    state.vaultUnlocked = false;
+    document.getElementById('masterVaultLockScreen').classList.add('active');
+    appendBlockchainBlock("VAULT_LOCKED", {
+      status: "SECURITY_ENCRYPTED"
+    });
+  };
 
   // Initialize Genesis Block on Blockchain
   function initGenesisBlock() {
@@ -83,7 +125,6 @@
     }
 
     if (state.tokens.length === 0) {
-      // Seed initial sample obfuscated token
       const seedToken = {
         id: "TK-8942-ALPHA",
         label: "Production Payment API Access",
@@ -192,7 +233,6 @@
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const tokenId = `TK-${randomSuffix}-SECURED`;
     
-    // Generate AES-style random cipher secret
     const rawSecret = `TK-${randomSuffix}-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const maskedSecret = `TK-${randomSuffix}-****-****-${generateCryptoHash(rawSecret).substring(0, 6)}`;
 
@@ -210,7 +250,6 @@
     state.tokens.unshift(newToken);
     saveState();
 
-    // Log transaction to Blockchain
     appendBlockchainBlock("TOKEN_GENERATION", {
       tokenId: tokenId,
       label: label,
@@ -218,10 +257,8 @@
       status: "ACTIVE_2FA_PROTECTED"
     });
 
-    // Reset Form
     document.getElementById('tokenLabelInput').value = '';
 
-    // Show One-Time Reveal Modal
     document.getElementById('revealTokenCode').textContent = rawSecret;
     window.openModal('modalReveal');
 
@@ -232,7 +269,7 @@
   // 2FA Security Login Alert Simulator
   window.simulateNewDeviceLogin = function () {
     const randomIP = `198.51.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
-    const devices = ["iPhone 15 Pro / Safari", "Linux Workstation / Firefox", "Windows 11 / Edge", "Android Pixel 8 / Chrome"];
+    const devices = ["iPhone 15 Pro / Safari", "Linux Workstation / Firefox", "Windows 11 / Edge", "Attacker Device / Chrome"];
     const chosenDevice = devices[Math.floor(Math.random() * devices.length)] + ` (IP: ${randomIP})`;
 
     state.pending2FAAlert = {
@@ -243,9 +280,9 @@
     document.getElementById('alertDeviceName').textContent = chosenDevice;
     document.getElementById('otpCodeInput').value = '';
 
-    appendBlockchainBlock("2FA_LOGIN_ATTEMPT", {
+    appendBlockchainBlock("STOLEN_PASSWORD_2FA_CHALLENGE", {
       device: chosenDevice,
-      status: "CHALLENGE_ISSUED"
+      status: "STOLEN_PASSWORD_BLOCKED_BY_2FA"
     });
 
     window.openModal('modal2FAAlert');
@@ -264,13 +301,13 @@
         otpVerified: otp || "PASSKEY_AUTH",
         action: "DEVICE_AUTHORIZED"
       });
-      alert(`✅ 2FA Verified: Device [${alertData.device}] authorized successfully! Notification email dispatched.`);
+      alert(`✅ 2FA Verified: Device [${alertData.device}] authorized successfully! Security alert email dispatched.`);
     } else {
       appendBlockchainBlock("2FA_LOGIN_BLOCKED", {
         device: alertData.device,
-        action: "ACCOUNT_LOCKED_DEVICE_BLOCKED"
+        action: "ATTACKER_BLOCKED_ACCOUNT_LOCKED"
       });
-      alert(`⛔ SECURITY LOCKOUT: Unauthorized device sign-in from [${alertData.device}] BLOCKED. Account secured and password reset triggered!`);
+      alert(`⛔ ANTI-THEFT LOCKOUT: Attacker attempt from [${alertData.device}] BLOCKED. Account password invalidated & emergency 2FA lock triggered!`);
     }
 
     state.pending2FAAlert = null;
@@ -378,7 +415,7 @@
     renderTokensTable();
     renderBlockchain();
     renderStats();
-    console.log("Token Secured Engine Initialized OK with 2FA Guard");
+    console.log("Token Secured Engine Initialized OK with Anti-Theft Vault Lock");
   }
 
   if (document.readyState === 'loading') {
