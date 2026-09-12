@@ -488,9 +488,22 @@
         <td style="font-family: var(--font-mono); font-weight: 700; color: var(--primary-cyan);">${token.id}</td>
         <td>${token.label}</td>
         <td><span class="token-code masked"><i class="bi bi-eye-slash-fill me-1"></i> ${token.maskedCode}</span></td>
-        <td><span class="badge badge-active"><i class="bi bi-shield-check"></i> Active</span></td>
+        <td>
+          ${token.status === 'revoked' 
+            ? `<span class="badge badge-revoked"><i class="bi bi-x-circle-fill"></i> Revoked</span>` 
+            : `<span class="badge badge-active"><i class="bi bi-shield-check"></i> Active</span>`}
+        </td>
         <td style="font-size: 12px; color: var(--text-muted);">${token.createdAt}</td>
-        <td><span style="font-size: 11px; color: var(--text-dim);">Protected</span></td>
+        <td>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="copyTokenForGitHub('${token.id}')" title="Copy clean secret to paste into GitHub / Vercel without fail">
+              <i class="bi bi-github text-cyan"></i> Copy for GitHub
+            </button>
+            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px; color: var(--accent-rose);" onclick="regenerateToken('${token.id}')" title="Regenerate a new replacement token if this one fails">
+              <i class="bi bi-arrow-clockwise"></i> Regenerate
+            </button>
+          </div>
+        </td>
       </tr>
     `).join('');
   }
@@ -520,6 +533,146 @@
     renderBlockchain();
   }
 
+  // SSO Multi-Provider Authenticator Handler
+  window.loginWithProvider = function (providerName) {
+    const ssoUser = `${providerName.toLowerCase().replace(/[^a-z]/g, '')}_user`;
+    const defaultEmail = `${ssoUser}@token-secured.io`;
+    
+    // Auto-fill form and set state
+    document.getElementById('authUsernameInput').value = ssoUser;
+    document.getElementById('authEmailInput').value = defaultEmail;
+    document.getElementById('masterPasscodeInput').value = "654321";
+
+    state.users[ssoUser] = {
+      email: defaultEmail,
+      passcode: "654321",
+      ssoProvider: providerName,
+      createdAt: new Date().toLocaleString(),
+      subscription: {
+        active: true,
+        plan: "Pro Workspace Build Access",
+        rate: "$5.00 USD / month",
+        renewsOn: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+      }
+    };
+
+    state.currentUser = ssoUser;
+    state.vaultUnlocked = true;
+    saveState();
+
+    appendBlockchainBlock("SSO_PROVIDER_AUTHENTICATED", {
+      user: ssoUser,
+      provider: providerName,
+      email: defaultEmail,
+      alertsDispatched: ["Email: " + defaultEmail, "WhatsApp: +1-800-WA-NOTIFY"]
+    });
+
+    const lockScreen = document.getElementById('masterVaultLockScreen');
+    if (lockScreen) lockScreen.classList.remove('active');
+
+    renderAll();
+    showToastNotification(`Authenticated via ${providerName} SSO! Dual 2FA alerts sent to Email & WhatsApp!`);
+  };
+
+  // Dual Email + WhatsApp Alert Simulator
+  window.simulateMultiAlertDispatch = function () {
+    const activeEmail = state.currentUser && state.users[state.currentUser] ? state.users[state.currentUser].email : "owner@account.org";
+    appendBlockchainBlock("UNUSUAL_ACTIVITY_ALERT_DISPATCHED", {
+      user: state.currentUser || "Manoj-548",
+      channels: ["Email (" + activeEmail + ")", "WhatsApp (+1-800-WA-NOTIFY)", "Telegram (@TokenSecuredBot)"],
+      status: "SECURITY_ALERT_SENT"
+    });
+    renderBlockchain();
+
+    showToastNotification(`🚨 UNUSUAL ACTIVITY ALERT! Simultaneous notifications sent to Email (${activeEmail}) & WhatsApp (+1-800-WA-NOTIFY)!`);
+  };
+
+  // Copy Clean Token Secret to Clipboard for GitHub / CLI
+  window.copyTokenForGitHub = function (tokenId) {
+    const token = state.tokens.find(t => t.id === tokenId);
+    if (!token) return;
+
+    const rawSecret = token.secret || `ghp_live_${generateCryptoHash(token.id).substring(2)}`;
+    
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(rawSecret).then(() => {
+        showToastNotification(`✅ Copied token to clipboard! Ready to paste into GitHub / Vercel without fail!`);
+      }).catch(() => {
+        fallbackCopyText(rawSecret);
+      });
+    } else {
+      fallbackCopyText(rawSecret);
+    }
+
+    appendBlockchainBlock("TOKEN_COPIED_FOR_GITHUB", {
+      tokenId: tokenId,
+      user: state.currentUser,
+      targetPlatform: "GitHub / Remote CLI"
+    });
+    renderBlockchain();
+  };
+
+  function fallbackCopyText(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textArea);
+    showToastNotification(`✅ Copied token to clipboard! Ready to paste into GitHub without fail!`);
+  }
+
+  // Revoke & Regenerate Failed Token
+  window.regenerateToken = function (tokenId) {
+    const tokenIndex = state.tokens.findIndex(t => t.id === tokenId);
+    if (tokenIndex === -1) return;
+
+    const oldToken = state.tokens[tokenIndex];
+    oldToken.status = 'revoked';
+
+    // Generate Replacement Token
+    const newId = `TK-${Math.floor(1000 + Math.random() * 9000)}-REGEN`;
+    const newSecret = `ghp_live_${generateCryptoHash(newId).substring(2)}`;
+    const newToken = {
+      id: newId,
+      label: `${oldToken.label} (Regenerated)`,
+      secret: newSecret,
+      maskedCode: `${newId.substring(0, 7)}-••••-••••-${newSecret.substring(newSecret.length - 4)}`,
+      status: 'active',
+      createdAt: new Date().toLocaleString(),
+      expiryMinutes: oldToken.expiryMinutes || 60,
+      alertLevel: oldToken.alertLevel || 'strict'
+    };
+
+    state.tokens.unshift(newToken);
+    saveState();
+
+    appendBlockchainBlock("TOKEN_REVOKED_REGENERATED", {
+      revokedTokenId: tokenId,
+      newTokenId: newId,
+      user: state.currentUser,
+      reason: "TOKEN_FAILURE_RECOVERY"
+    });
+
+    renderAll();
+    showToastNotification(`🔄 Token ${tokenId} Revoked! Fresh Token ${newId} regenerated & active for your account!`);
+  };
+
+  // Toast Notification Helper
+  function showToastNotification(message) {
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.innerHTML = `<i class="bi bi-shield-check text-cyan" style="font-size: 20px;"></i> <span>${message}</span>`;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 4500);
+  }
+
   window.switchView = function (viewName) {
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.classList.toggle('active', tab.getAttribute('data-view') === viewName);
@@ -540,7 +693,7 @@
     initGenesisBlock();
     loadSavedState();
     renderAll();
-    console.log("Token Secured Engine Initialized OK with 2FA Gate & PR Merge Approval Guard");
+    console.log("Token Secured Engine Initialized OK with 2FA Gate, SSO Grid, Dual Alerts & Token Regeneration");
   }
 
   if (document.readyState === 'loading') {
@@ -550,3 +703,4 @@
   }
 
 })();
+

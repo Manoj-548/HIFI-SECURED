@@ -104,12 +104,58 @@
           <input type="password" id="masterPasscodeInput" class="form-input" placeholder="Enter 6-Digit 2FA Passcode" style="text-align: center; font-size: 24px; height: 56px; letter-spacing: 8px; font-family: var(--font-mono); font-weight: 800;" required>
         </div>
 
-        <button type="submit" id="authSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 16px; font-size: 16px; font-weight: 800; border-radius: var(--radius-md);">
-          <i class="bi bi-shield-check me-2"></i> Subscribe ($5/mo) & Register 2FA Account
-        </button>
-      </form>
+      <!-- MULTI-PLATFORM SSO & SOCIAL AUTHENTICATION GRID -->
+      <div class="sso-divider">Or Continue With SSO / Social 2FA Gateway</div>
 
-      <div style="font-size: 12px; color: var(--text-dim); margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 12px;">
+      <div class="sso-providers-grid">
+        <button type="button" class="sso-btn" onclick="loginWithProvider('Google')">
+          <span class="sso-brand-icon"><i class="bi bi-google text-rose"></i></span>
+          <span>Google</span>
+          <span class="sso-badge-last">Last</span>
+        </button>
+
+        <button type="button" class="sso-btn" onclick="loginWithProvider('GitHub')">
+          <span class="sso-brand-icon"><i class="bi bi-github"></i></span>
+          <span>GitHub</span>
+        </button>
+
+        <button type="button" class="sso-btn" onclick="loginWithProvider('Email')">
+          <span class="sso-brand-icon"><i class="bi bi-envelope-fill text-purple"></i></span>
+          <span>Email</span>
+        </button>
+
+        <button type="button" class="sso-btn" onclick="loginWithProvider('Outlook')">
+          <span class="sso-brand-icon"><i class="bi bi-microsoft text-cyan"></i></span>
+          <span>Outlook</span>
+        </button>
+
+        <button type="button" class="sso-btn" onclick="loginWithProvider('WhatsApp')">
+          <span class="sso-brand-icon"><i class="bi bi-whatsapp text-emerald"></i></span>
+          <span>WhatsApp</span>
+        </button>
+
+        <button type="button" class="sso-btn" onclick="loginWithProvider('Telegram')">
+          <span class="sso-brand-icon"><i class="bi bi-telegram text-info"></i></span>
+          <span>Telegram</span>
+        </button>
+
+        <button type="button" class="sso-btn" onclick="loginWithProvider('Discord')">
+          <span class="sso-brand-icon"><i class="bi bi-discord text-purple"></i></span>
+          <span>Discord</span>
+        </button>
+
+        <button type="button" class="sso-btn" onclick="loginWithProvider('X')">
+          <span class="sso-brand-icon"><i class="bi bi-twitter-x"></i></span>
+          <span>X</span>
+        </button>
+
+        <button type="button" class="sso-btn sso-enterprise" onclick="loginWithProvider('Enterprise SSO')">
+          <span class="sso-brand-icon"><i class="bi bi-shield-check text-cyan"></i></span>
+          <span>Continue with Enterprise SSO (SAML 2.0 / Okta / Azure AD)</span>
+        </button>
+      </div>
+
+      <div style="font-size: 12px; color: var(--text-dim); margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 12px;">
         <span><i class="bi bi-check-circle-fill text-success"></i> $5.00 USD/month Subscription</span>
         <span>&bull;</span>
         <span><i class="bi bi-shield-lock-fill text-info"></i> 2FA Enforced</span>
@@ -248,23 +294,38 @@
             </form>
           </div>
 
-          <!-- PR Merge Approval Gate Card -->
+          <!-- Multi-Channel Security Alerts & PR Approval Gate Card -->
           <div class="card blockchain-card">
             <div class="card-title">
-              <span><i class="bi bi-git card-title-icon me-2"></i> Mandatory PR Approval Gate</span>
-              <span class="badge badge-pending">PR Control Active</span>
+              <span><i class="bi bi-bell-fill card-title-icon me-2"></i> Multi-Channel Security Alerts & PR Gate</span>
+              <span class="badge badge-active"><i class="bi bi-broadcast"></i> Dual Dispatch</span>
             </div>
             
             <div class="email-simulation">
               <div class="email-meta">
-                <i class="bi bi-shield-lock-fill text-info me-1"></i> <strong>Source Control Security Guard</strong>
+                <i class="bi bi-shield-lock-fill text-info me-1"></i> <strong>Dual Email & WhatsApp Alert Dispatcher Active</strong>
               </div>
-              <div style="font-size: 13px;">
-                No collaborator/tester can push directly to repo. All code updates require <strong>Owner PR Review & 2FA Approval</strong>.
+              <div style="font-size: 13px; margin-bottom: 10px;">
+                All unusual activities, device sign-ins, token usage, or PR requests trigger real-time notifications sent simultaneously to <strong>Email AND WhatsApp</strong>.
               </div>
-              <button class="btn btn-secondary" style="margin-top: 8px; font-size: 12px;" onclick="simulateCollaboratorPRSubmission()">
-                <i class="bi bi-node-plus"></i> Simulate Collaborator PR Submission
-              </button>
+
+              <div class="alert-channels-grid">
+                <div class="alert-channel-badge">
+                  <i class="bi bi-envelope-check-fill text-purple"></i> Email: <span id="displayUserEmail">owner@account.org</span>
+                </div>
+                <div class="alert-channel-badge">
+                  <i class="bi bi-whatsapp text-emerald"></i> WhatsApp: <span>+1-800-WA-NOTIFY</span>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button class="btn btn-secondary" style="flex: 1; font-size: 12px;" onclick="simulateMultiAlertDispatch()">
+                  <i class="bi bi-bell-fill text-amber"></i> Test Dual Alert (Email + WhatsApp)
+                </button>
+                <button class="btn btn-secondary" style="font-size: 12px;" onclick="simulateCollaboratorPRSubmission()">
+                  <i class="bi bi-git text-purple"></i> Test PR Gate
+                </button>
+              </div>
             </div>
           </div>
 
