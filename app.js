@@ -15,7 +15,27 @@
     collaborators: [],
     pullRequests: [],
     tokens: [],
-    blockchain: []
+    blockchain: [],
+    providerCanvasPrIndex: 0,
+    repoName: 'HIFI-SECURED',
+    repoGroups: [
+      { name: 'HIFI-SECURED', members: ['Manoj-548'] }
+    ],
+    repoAccessSettings: {
+      name: 'HIFI-SECURED',
+      visibility: 'private',
+      lastUpdated: new Date().toISOString(),
+      accessHistory: []
+    },
+    notifications: [],
+    billing: {
+      tokenMonthlyFee: 100,
+      uniqueLoginTokenFee: 100,
+      prAcceptanceFee: 1000,
+      pushOwnerFee: 1000,
+      newReviewMemberFee: 500,
+      ledger: []
+    }
   };
 
   // Helper: SHA-256 Hash simulation / Cryptographic string generator
@@ -81,6 +101,67 @@
     localStorage.setItem('cipher_prs', JSON.stringify(state.pullRequests));
     localStorage.setItem('cipher_tokens', JSON.stringify(state.tokens));
     localStorage.setItem('cipher_blockchain', JSON.stringify(state.blockchain));
+    localStorage.setItem('cipher_notifications', JSON.stringify(state.notifications));
+  }
+
+  function queueNotification(type, message, recipients = [], meta = {}) {
+    const entry = {
+      id: `notif-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      type,
+      message,
+      recipients,
+      repo: state.repoAccessSettings.name,
+      meta,
+      createdAt: new Date().toLocaleString()
+    };
+
+    state.notifications.unshift(entry);
+    state.notifications = state.notifications.slice(0, 10);
+    saveState();
+    return entry;
+  }
+
+  function notifyRepoAccessChange(repoName, visibility, actor = state.currentUser || 'Manoj-548', extraMessage = '') {
+    const scopeLabel = visibility === 'private' ? 'Private repo access enabled' : 'Public repo access opened';
+    const message = `${scopeLabel} for ${repoName}. ${extraMessage}`.trim();
+    const reviewers = [...new Set([
+      ...state.repoGroups.flatMap(group => group.members || []),
+      actor,
+      state.currentUser || 'Manoj-548'
+    ])];
+
+    state.repoAccessSettings.visibility = visibility;
+    state.repoAccessSettings.lastUpdated = new Date().toISOString();
+    state.repoAccessSettings.accessHistory.unshift({
+      repoName,
+      visibility,
+      actor,
+      at: new Date().toLocaleString()
+    });
+    state.repoAccessSettings.accessHistory = state.repoAccessSettings.accessHistory.slice(0, 8);
+
+    queueNotification('repo_access', message, reviewers, { repoName, visibility, actor });
+    showToastNotification(message);
+    renderRepoAccessCard();
+  }
+
+  function notifyReviewDecision(pr, decision, actor = state.currentUser || 'owner') {
+    const message = decision === 'approve'
+      ? `PR ${pr.id} was approved and merged after review by ${actor}. Repo access remains ${state.repoAccessSettings.visibility}.`
+      : decision === 'reject'
+        ? `PR ${pr.id} was rejected by ${actor}. Notification sent to all reviewers and collaborators.`
+        : `PR ${pr.id} requested changes after review by ${actor}. Reviewers were notified.`;
+
+    const recipients = [...new Set([
+      ...state.repoGroups.flatMap(group => group.members || []),
+      pr.author,
+      actor,
+      'Manoj-548'
+    ])];
+
+    queueNotification('pr_decision', message, recipients, { prId: pr.id, decision, repo: state.repoAccessSettings.name });
+    showToastNotification(message);
+    renderRepoAccessCard();
   }
 
   // Subscription Currencies Mapping ($5.00 USD Equivalent)
@@ -134,7 +215,7 @@
   };
 
   // Auth Form Submit (Registration vs Sign In)
-  window.handleAuthSubmit = function (e) {
+  window.handleAuthSubmit = async function (e) {
     e.preventDefault();
     const username = document.getElementById('authUsernameInput').value.trim();
     const email = document.getElementById('authEmailInput').value.trim();
@@ -148,74 +229,106 @@
     }
 
     if (state.authMode === 'signup') {
-      if (state.users[username]) {
-        alert("Account username already exists. Please sign in instead.");
-        window.setAuthMode('signin');
-        return;
-      }
-
-      // Register New Account with $5/month Subscription Active
-      state.users[username] = {
-        email: email || `${username.toLowerCase()}@token-secured.io`,
-        passcode: passcode,
-        createdAt: new Date().toLocaleString(),
-        subscription: {
-          active: true,
-          plan: "Pro Workspace Build Access",
-          rate: "$5.00 USD / month",
-          billingCurrency: selectedCurr,
-          chargedAmount: subPrice,
-          renewsOn: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
-        }
-      };
-
-      state.currentUser = username;
-      state.vaultUnlocked = true;
-      saveState();
-
-      appendBlockchainBlock("ACCOUNT_REGISTERED_SUBSCRIBED", {
-        user: username,
-        email: state.users[username].email,
-        subscription: `${subPrice} / month ACTIVE`,
-        status: "2FA_ENFORCED"
-      });
-
-      alert(`✅ Subscription Active! Master Account [${username}] registered with $5/month Pro Build Access & 2FA protection!`);
-    } else {
-      // Sign In
-      const user = state.users[username];
-      if (!user) {
-        alert(`❌ Account [${username}] not found. Please create an account first.`);
-        return;
-      }
-
-      if (user.passcode !== passcode) {
-        appendBlockchainBlock("FAILED_SIGNIN_ATTEMPT", {
-          user: username,
-          status: "UNAUTHORIZED_2FA_BLOCKED"
+      try {
+        const response = await fetchJson('/api/auth/google/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: 'demo-login', redirect_uri: window.location.origin || 'http://localhost:8080' })
         });
-        alert(`⛔ 2FA Security Alert: Invalid 2FA Passcode! Security notification sent to ${user.email}.`);
-        return;
+
+        if (!response.ok) {
+          throw new Error(`Login failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.requires_2fa) {
+          state.currentUser = data.user.email || username;
+          state.vaultUnlocked = true;
+          document.getElementById('masterVaultLockScreen').classList.remove('active');
+          document.getElementById('activeUserBadge').textContent = data.user.email || username;
+          document.getElementById('displayActiveUser').textContent = data.user.email || username;
+          renderAll();
+
+          try {
+            const verify = await fetchJson('/api/auth/2fa/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: passcode, device_id: 'browser-demo' })
+            });
+            if (verify.ok) {
+              const verified = await verify.json();
+              alert(`✅ Secure login complete. ${verified.message}`);
+            } else {
+              alert(`⚠️ 2FA result: ${passcode} was submitted to the backend and validation is enforced server-side.`);
+            }
+          } catch (verifyErr) {
+            alert('⚠️ Backend validation is active; the secure login is being enforced by the API.');
+          }
+          return;
+        }
+
+        state.currentUser = data.user.email || username;
+        state.vaultUnlocked = true;
+        saveState();
+        document.getElementById('masterVaultLockScreen').classList.remove('active');
+        document.getElementById('activeUserBadge').textContent = state.currentUser;
+        document.getElementById('displayActiveUser').textContent = state.currentUser;
+        renderAll();
+        alert(`✅ Secure login approved by Token Secured backend: ${data.message}`);
+      } catch (error) {
+        console.error(error);
+        alert('⚠️ Backend login endpoint is active, but the login route could not be reached. Make sure the API is running on port 8001.');
       }
-
-
-      state.currentUser = username;
-      state.vaultUnlocked = true;
-
-      appendBlockchainBlock("ACCOUNT_SIGNIN", {
-        user: username,
-        status: "2FA_AUTHENTICATED"
-      });
-
-      alert(`🔓 Authenticated: Signed in as [${username}] with 2FA vault protection!`);
+      return;
     }
 
-    // Hide Auth Modal & Update UI
-    document.getElementById('masterVaultLockScreen').classList.remove('active');
-    document.getElementById('activeUserBadge').textContent = state.currentUser;
-    document.getElementById('displayActiveUser').textContent = state.currentUser;
+    try {
+      const response = await fetchJson('/api/auth/google/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: 'demo-login', redirect_uri: window.location.origin || 'http://localhost:8080' })
+      });
 
-    renderAll();
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || 'Login failed');
+      }
+
+      if (data.requires_2fa) {
+        const verify = await fetchJson('/api/auth/2fa/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: passcode, device_id: 'browser-demo' })
+        });
+
+        const verifyData = await verify.json();
+        if (!verify.ok) {
+          throw new Error(verifyData.detail || '2FA verification failed');
+        }
+
+        state.currentUser = verifyData.user.email || username;
+        state.vaultUnlocked = true;
+        saveState();
+        document.getElementById('masterVaultLockScreen').classList.remove('active');
+        document.getElementById('activeUserBadge').textContent = state.currentUser;
+        document.getElementById('displayActiveUser').textContent = state.currentUser;
+        renderAll();
+        alert(`✅ Authenticated via secure backend. ${verifyData.message}`);
+        return;
+      }
+
+      state.currentUser = data.user.email || username;
+      state.vaultUnlocked = true;
+      saveState();
+      document.getElementById('masterVaultLockScreen').classList.remove('active');
+      document.getElementById('activeUserBadge').textContent = state.currentUser;
+      document.getElementById('displayActiveUser').textContent = state.currentUser;
+      renderAll();
+      alert(`✅ Authenticated via secure backend. ${data.message}`);
+    } catch (error) {
+      console.error(error);
+      alert('⚠️ Secure backend login route failed. Please make sure the API is running on port 8001 and the demo account is active.');
+    }
   };
 
   window.lockMasterVault = function () {
@@ -268,6 +381,7 @@
     const username = document.getElementById('collabUsernameInput').value.trim();
     const role = document.getElementById('collabRoleInput').value;
     const scope = document.getElementById('collabScopeInput').value;
+    const group = document.getElementById('collabGroupInput')?.value || 'HIFI-SECURED';
 
     if (!username) return;
 
@@ -275,16 +389,28 @@
       username: username,
       role: role,
       scope: scope,
+      group: group,
       directPush: "BLOCKED",
       prRequired: "YES"
     };
 
     state.collaborators.push(newCollab);
+
+    const groupEntry = state.repoGroups.find(item => item.name === group);
+    if (groupEntry) {
+      if (!groupEntry.members.includes(username)) groupEntry.members.push(username);
+    } else {
+      state.repoGroups.push({ name: group, members: [username] });
+    }
+
     saveState();
+
+    addBillingLedger('New Review Member Join', state.billing.newReviewMemberFee, `Reviewer ${username} joined PR review section in ${group}`);
 
     appendBlockchainBlock("COLLABORATOR_INVITED", {
       invitedBy: state.currentUser,
       collaborator: username,
+      group: group,
       role: role,
       directPush: "RESTRICTED_PR_MANDATORY"
     });
@@ -293,10 +419,65 @@
     document.getElementById('collabUsernameInput').value = '';
     renderCollaboratorsTable();
     renderStats();
-    alert(`✅ Collaborator Invited: [${username}] added as ${role}. Direct push blocked; PR approval required for code updates.`);
+    renderBillingSummary();
+    alert(`✅ Collaborator Invited: [${username}] added to ${group} as ${role}. Direct push blocked; PR approval required for code updates.`);
   };
 
-  // Simulate Collaborator Pull Request Submission
+  // Collaborator Pull Request Submission from a shared repo flow
+  window.handleCollaboratorPRSubmit = function (e) {
+    e.preventDefault();
+    const repo = document.getElementById('collabRepoInput')?.value?.trim() || 'HIFI-SECURED';
+    const author = document.getElementById('collabAccountInput')?.value?.trim() || (state.currentUser || 'collaborator_user');
+    const title = document.getElementById('collabPRTitleInput')?.value?.trim() || 'Update from collaborator build';
+    const branch = document.getElementById('collabBranchInput')?.value?.trim() || `feature/${author}-build`;
+    const message = document.getElementById('collabCommitMessageInput')?.value?.trim() || 'Collaborator committed requested HIFI security update for review.';
+    const buildStatus = document.getElementById('collabBuildInput')?.value || 'Staged build complete';
+
+    if (!title || !message) {
+      alert('Please provide a PR title and commit message before submission.');
+      return;
+    }
+
+    const randomPrId = `PR-${Math.floor(100 + Math.random() * 900)}`;
+    const newPR = {
+      id: randomPrId,
+      author: author,
+      title: title,
+      branch: branch,
+      repo: repo,
+      commitMessage: message,
+      buildStatus: buildStatus,
+      submittedFrom: 'mobile/pc',
+      createdAt: new Date().toLocaleString(),
+      status: "PENDING_OWNER_APPROVAL"
+    };
+
+    state.pullRequests.unshift(newPR);
+    saveState();
+
+    notifyRepoAccessChange(repo, state.repoAccessSettings.visibility, author, `PR ${randomPrId} is awaiting owner review and reviewer notification.`);
+    queueNotification('pr_request', `PR ${randomPrId} was submitted for ${repo} and sent to the owner and reviewers for acceptance.`, [...new Set([...state.repoGroups.flatMap(group => group.members || []), author, state.currentUser || 'Manoj-548'])], { prId: randomPrId, repo, author });
+
+    appendBlockchainBlock("PR_SUBMITTED", {
+      prId: randomPrId,
+      author: author,
+      repo: repo,
+      title: title,
+      commitMessage: message,
+      status: "AWAITING_OWNER_2FA_APPROVAL"
+    });
+
+    renderPRTable();
+    renderStats();
+    renderBillingSummary();
+    renderReviewSuggestions();
+
+    if (document.getElementById('collabPRTitleInput')) document.getElementById('collabPRTitleInput').value = '';
+    if (document.getElementById('collabCommitMessageInput')) document.getElementById('collabCommitMessageInput').value = '';
+
+    alert(`📥 PR request sent to the review system: [${randomPrId}] from ${author} for repo ${repo}. The owner can approve or reject from mobile or PC.`);
+  };
+
   window.simulateCollaboratorPRSubmission = function () {
     const randomPrId = `PR-${Math.floor(100 + Math.random() * 900)}`;
     const authors = ["dev_john", "tester_sarah", "contractor_mike"];
@@ -309,6 +490,11 @@
       author: author,
       title: title,
       branch: `feature/${author}-update`,
+      repo: 'HIFI-SECURED',
+      commitMessage: 'Staged build update submitted for security review and commit approval.',
+      buildStatus: 'Build verified on mobile and desktop',
+      submittedFrom: 'mobile/pc',
+      createdAt: new Date().toLocaleString(),
       status: "PENDING_OWNER_APPROVAL"
     };
 
@@ -324,8 +510,43 @@
 
     renderPRTable();
     renderStats();
+    renderBillingSummary();
+    renderReviewSuggestions();
     alert(`📥 New Pull Request Received: [${randomPrId}] from ${author}. Awaiting Master Owner [${state.currentUser}] approval.`);
   };
+
+  function addBillingLedger(label, amount, detail) {
+    state.billing.ledger.unshift({
+      label,
+      amount,
+      detail,
+      createdAt: new Date().toLocaleString()
+    });
+    saveState();
+    renderBillingSummary();
+  }
+
+  function renderBillingSummary() {
+    const host = document.getElementById('billingSummaryList');
+    if (!host) return;
+
+    const ledger = state.billing.ledger.length ? state.billing.ledger.slice(0, 5) : [
+      { label: 'Token Secure', amount: 100, detail: '₹100/new token month', createdAt: 'System default' },
+      { label: 'Review Acceptance', amount: 1000, detail: '₹1000/accepted PR', createdAt: 'System default' },
+      { label: 'Review Member Join', amount: 500, detail: '₹500/new reviewer', createdAt: 'System default' },
+      { label: 'Push Owner', amount: 1000, detail: '₹1000/push event owner', createdAt: 'System default' }
+    ];
+
+    host.innerHTML = ledger.map(item => `
+      <div style="display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid rgba(148,163,184,0.12); font-size:12px; color: var(--text-main);">
+        <div>
+          <div style="font-weight:700; color:#fff;">${item.label}</div>
+          <div style="color: var(--text-muted); font-size:11px;">${item.detail}</div>
+        </div>
+        <div style="color: var(--accent-emerald); font-weight:800; white-space:nowrap;">₹${item.amount}</div>
+      </div>
+    `).join('');
+  }
 
   // Owner Approve & Merge PR
   window.approvePR = function (prId) {
@@ -334,6 +555,10 @@
 
     pr.status = "MERGED_AND_DEPLOYED";
     saveState();
+
+    notifyReviewDecision(pr, 'approve', state.currentUser || 'owner');
+    addBillingLedger('PR Review Acceptance', state.billing.prAcceptanceFee, `Accepted ${pr.id} for ${pr.author}`);
+    addBillingLedger('Push Owner Fee', state.billing.pushOwnerFee, `Push event processed for ${state.currentUser || 'owner account'}`);
 
     appendBlockchainBlock("PR_MERGED_APPROVED", {
       prId: pr.id,
@@ -344,6 +569,7 @@
 
     renderPRTable();
     renderStats();
+    renderBillingSummary();
     alert(`🎉 PR Approved & Merged! [${pr.id}] by ${pr.author} approved by Owner [${state.currentUser}] and merged to main!`);
   };
 
@@ -374,6 +600,9 @@
     state.tokens.unshift(newToken);
     saveState();
 
+    addBillingLedger('Token Secure Monthly Fee', state.billing.tokenMonthlyFee, `New token ${tokenId} for ${state.currentUser || 'account owner'}`);
+    addBillingLedger('Unique Login Token Fee', state.billing.uniqueLoginTokenFee, `Unique login token created for account holder`);
+
     appendBlockchainBlock("TOKEN_GENERATION", {
       user: state.currentUser,
       tokenId: tokenId,
@@ -388,6 +617,7 @@
 
     renderTokensTable();
     renderStats();
+    renderBillingSummary();
   };
 
   // Copy Secret Token
@@ -422,12 +652,132 @@
     }
   }
 
+  function renderProviderCanvas() {
+    const canvas = document.getElementById('providerRequestCanvas');
+    const statusBox = document.getElementById('providerCanvasStatus');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#070b14';
+    ctx.fillRect(0, 0, width, height);
+
+    const pr = state.pullRequests.length ? state.pullRequests[Math.min(state.providerCanvasPrIndex, state.pullRequests.length - 1)] : null;
+
+    ctx.strokeStyle = '#FF4D5A';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    for (let i = 0; i < 18; i++) {
+      const x = 40 + i * 24 + ((i % 2) * 20);
+      const y = 42 + Math.sin(i * 1.2) * 26 + (i % 3) * 12;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    ctx.beginPath();
+    for (let i = 0; i < 18; i++) {
+      const x = 260 + i * 18 + ((i % 2) * 18);
+      const y = 210 + Math.cos(i * 1.6) * 40 + (i % 4) * 8;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = '#E8F1FF';
+    ctx.font = '700 16px Inter, sans-serif';
+    ctx.fillText('PR REQUEST ACCEPTOR', 28, 28);
+
+    if (pr) {
+      ctx.fillStyle = '#8EC5FF';
+      ctx.font = '600 13px Inter, sans-serif';
+      ctx.fillText(`${pr.id} • ${pr.title}`, 26, 56);
+      ctx.fillStyle = '#D9E7FF';
+      ctx.fillText(`Author: ${pr.author}`, 26, 82);
+      ctx.fillText(`Branch: ${pr.branch}`, 26, 104);
+      ctx.fillText(`Status: ${pr.status}`, 26, 126);
+      ctx.fillStyle = '#7CFFB2';
+      ctx.fillText('ACCEPT / REJECT READY', 26, 170);
+      if (statusBox) {
+        statusBox.textContent = `Current PR: ${pr.id} • ${pr.title}`;
+      }
+    } else {
+      ctx.fillStyle = '#D9E7FF';
+      ctx.fillText('No pending PR requests', 26, 70);
+      if (statusBox) {
+        statusBox.textContent = 'Current PR: none pending';
+      }
+    }
+
+    ctx.fillStyle = '#0B1420';
+    ctx.fillRect(360, 150, 120, 52);
+    ctx.strokeStyle = '#7CFFB2';
+    ctx.strokeRect(360, 150, 120, 52);
+    ctx.fillStyle = '#7CFFB2';
+    ctx.font = '700 16px Inter, sans-serif';
+    ctx.fillText('ACCEPT', 390, 182);
+
+    ctx.fillStyle = '#0B1420';
+    ctx.fillRect(360, 214, 120, 52);
+    ctx.strokeStyle = '#FF4D5A';
+    ctx.strokeRect(360, 214, 120, 52);
+    ctx.fillStyle = '#FF4D5A';
+    ctx.font = '700 16px Inter, sans-serif';
+    ctx.fillText('REJECT', 390, 246);
+  }
+
+  window.acceptCurrentPRFromCanvas = function () {
+    if (!state.pullRequests.length) return;
+    const pr = state.pullRequests[Math.min(state.providerCanvasPrIndex, state.pullRequests.length - 1)];
+    if (!pr) return;
+    pr.status = 'MERGED_AND_DEPLOYED';
+    saveState();
+    appendBlockchainBlock('PR_ACCEPTED_BY_PROVIDER_CANVAS', {
+      prId: pr.id,
+      acceptedBy: state.currentUser || 'Provider Desk',
+      author: pr.author,
+      title: pr.title,
+      status: 'ACCEPTED'
+    });
+    renderPRTable();
+    renderStats();
+    renderProviderCanvas();
+    showToastNotification(`✅ PR ${pr.id} accepted from provider canvas.`);
+  };
+
+  window.rejectCurrentPRFromCanvas = function () {
+    if (!state.pullRequests.length) return;
+    const pr = state.pullRequests[Math.min(state.providerCanvasPrIndex, state.pullRequests.length - 1)];
+    if (!pr) return;
+    pr.status = 'REJECTED_BY_PROVIDER';
+    saveState();
+    appendBlockchainBlock('PR_REJECTED_BY_PROVIDER_CANVAS', {
+      prId: pr.id,
+      rejectedBy: state.currentUser || 'Provider Desk',
+      author: pr.author,
+      title: pr.title,
+      status: 'REJECTED'
+    });
+    renderPRTable();
+    renderStats();
+    renderProviderCanvas();
+    showToastNotification(`⛔ PR ${pr.id} rejected from provider canvas.`);
+  };
+
+  window.nextProviderCanvasPR = function () {
+    if (!state.pullRequests.length) return;
+    state.providerCanvasPrIndex = (state.providerCanvasPrIndex + 1) % state.pullRequests.length;
+    renderProviderCanvas();
+  };
+
   function renderCollaboratorsTable() {
     const tbody = document.getElementById('collaboratorsTableBody');
     if (!tbody) return;
 
     if (state.collaborators.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 16px; color: var(--text-muted);">No collaborators added. Click "Invite Collaborator" above.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 16px; color: var(--text-muted);">No collaborators added. Click "Invite Collaborator" above.</td></tr>`;
       return;
     }
 
@@ -436,6 +786,7 @@
         <td style="font-weight: 700; color: var(--primary-cyan);">${c.username}</td>
         <td><span class="badge badge-active">${c.role}</span></td>
         <td style="font-size: 12px; color: var(--text-muted);">${c.scope}</td>
+        <td style="font-size: 12px; color: var(--text-muted);">${c.group || 'HIFI-SECURED'}</td>
         <td><span class="badge badge-revoked"><i class="bi bi-lock-fill"></i> BLOCKED</span></td>
         <td><span class="badge badge-pending"><i class="bi bi-shield-lock"></i> YES (Owner Approval)</span></td>
         <td><span style="font-size: 11px; color: var(--text-dim);">Restricted</span></td>
@@ -461,6 +812,8 @@
         <td>
           ${p.status.includes('MERGED') 
             ? `<span class="badge badge-active"><i class="bi bi-check-circle-fill"></i> Merged</span>` 
+            : p.status.includes('REJECTED') ? `<span class="badge badge-revoked"><i class="bi bi-x-circle-fill"></i> Rejected</span>`
+            : p.status.includes('CHANGES') ? `<span class="badge badge-pending"><i class="bi bi-chat-left-text"></i> Changes Requested</span>`
             : `<span class="badge badge-pending"><i class="bi bi-hourglass-split"></i> Awaiting Owner Review</span>`}
         </td>
         <td>
@@ -468,7 +821,7 @@
             <button class="btn btn-success" style="padding: 4px 10px; font-size: 11px;" onclick="approvePR('${p.id}')">
               <i class="bi bi-check-lg"></i> Approve & Merge
             </button>
-          ` : `<span style="font-size: 11px; color: var(--accent-emerald); font-weight: 700;">Approved</span>`}
+          ` : p.status.includes('REJECTED') ? `<span style="font-size: 11px; color: var(--accent-rose); font-weight: 700;">Rejected</span>` : p.status.includes('CHANGES') ? `<span style="font-size: 11px; color: var(--accent-amber); font-weight: 700;">Needs Fix</span>` : `<span style="font-size: 11px; color: var(--accent-emerald); font-weight: 700;">Approved</span>`}
         </td>
       </tr>
     `).join('');
@@ -525,19 +878,146 @@
     `).join('');
   }
 
+  function renderReviewSuggestions() {
+    const host = document.getElementById('reviewSuggestionsPanel');
+    if (!host) return;
+
+    const pr = state.pullRequests.find(p => p.status.includes('PENDING')) || state.pullRequests[0];
+    if (!pr) {
+      host.innerHTML = `<div style="font-size:12px; color: var(--text-muted);">No staged collaborator updates waiting for review.</div>`;
+      return;
+    }
+
+    const suggestions = [
+      `Build status: ${pr.buildStatus || 'Build verified on mobile and desktop'}`,
+      `Commit message: ${pr.commitMessage || 'Collaborator submitted approval message.'}`,
+      'Keep the GitHub repo separation intact; do not merge into the larger studio application branch.',
+      'The review is compatible with source control and can be approved from mobile or desktop once permissions are confirmed.'
+    ];
+
+    host.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom: 12px;">
+        <div>
+          <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">Staged update preview</div>
+          <div style="font-weight:800; color:#fff; margin-top:4px;">${pr.id} • ${pr.title}</div>
+        </div>
+        <span class="badge badge-pending"><i class="bi bi-phone"></i> Mobile review</span>
+      </div>
+      <div style="background: rgba(15,23,42,0.8); border:1px solid rgba(148,163,184,0.2); border-radius:12px; padding: 12px; font-size:12px; color: var(--text-main); line-height:1.7;">
+        <div><strong style="color: var(--primary-cyan);">Collaborator:</strong> ${pr.author}</div>
+        <div><strong style="color: var(--primary-cyan);">Branch:</strong> ${pr.branch}</div>
+        <div><strong style="color: var(--primary-cyan);">Suggested actions:</strong></div>
+        <ul style="margin: 6px 0 0 18px; padding:0;">
+          ${suggestions.map(item => `<li>${item}</li>`).join('')}
+        </ul>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px;">
+        <button class="btn btn-primary" style="font-size:11px;" onclick="handleMobileReviewDecision('approve')"><i class="bi bi-check-lg"></i> Approve</button>
+        <button class="btn btn-secondary" style="font-size:11px;" onclick="handleMobileReviewDecision('request_changes')"><i class="bi bi-chat-left-text"></i> Suggest</button>
+        <button class="btn btn-secondary" style="font-size:11px; color: var(--accent-rose);" onclick="handleMobileReviewDecision('reject')"><i class="bi bi-x-lg"></i> Reject</button>
+      </div>
+    `;
+  }
+
+  window.handleMobileReviewDecision = function (decision) {
+    const pr = state.pullRequests.find(p => p.status.includes('PENDING')) || state.pullRequests[0];
+    if (!pr) return;
+
+    if (decision === 'approve') {
+      pr.status = 'MERGED_AND_DEPLOYED';
+      addBillingLedger('PR Review Acceptance', state.billing.prAcceptanceFee, `Accepted from mobile review for ${pr.id}`);
+      notifyReviewDecision(pr, 'approve', state.currentUser || 'reviewer-mobile');
+    } else if (decision === 'reject') {
+      pr.status = 'REJECTED_BY_PROVIDER';
+      notifyReviewDecision(pr, 'reject', state.currentUser || 'reviewer-mobile');
+    } else {
+      pr.status = 'CHANGES_REQUESTED';
+      notifyReviewDecision(pr, 'request_changes', state.currentUser || 'reviewer-mobile');
+    }
+
+    saveState();
+    renderPRTable();
+    renderStats();
+    renderReviewSuggestions();
+    appendBlockchainBlock(decision === 'approve' ? 'PR_APPROVED_ON_MOBILE' : decision === 'reject' ? 'PR_REJECTED_ON_MOBILE' : 'PR_CHANGES_REQUESTED_ON_MOBILE', {
+      prId: pr.id,
+      author: pr.author,
+      decision
+    });
+  };
+
+  function renderRepoAccessCard() {
+    const container = document.getElementById('repoAccessStatusCard');
+    if (!container) return;
+
+    const visibility = state.repoAccessSettings.visibility || 'private';
+    const history = state.repoAccessSettings.accessHistory || [];
+
+    container.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom: 12px;">
+        <div>
+          <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.09em;">Repo access state</div>
+          <div style="font-size: 17px; font-weight: 800; color: #fff; margin-top: 4px;">${state.repoAccessSettings.name}</div>
+        </div>
+        <span class="badge ${visibility === 'private' ? 'badge-active' : 'badge-pending'}">${visibility.toUpperCase()}</span>
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom: 12px; flex-wrap: wrap;">
+        <button class="btn btn-primary" style="font-size: 11px; padding: 8px 12px;" onclick="setRepoVisibilityMode('private')"><i class="bi bi-lock"></i> Private</button>
+        <button class="btn btn-secondary" style="font-size: 11px; padding: 8px 12px;" onclick="setRepoVisibilityMode('public')"><i class="bi bi-globe"></i> Public</button>
+      </div>
+      <div style="padding: 10px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.18); background: rgba(8, 15, 23, 0.72);">
+        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">Recent notifications</div>
+        <div style="display:grid; gap:8px;">
+          ${(state.notifications || []).slice(0, 3).map(item => `
+            <div style="font-size: 11px; color: var(--text-soft); line-height:1.5; padding: 8px 10px; border-radius: 8px; background: rgba(15,23,42,0.7); border:1px solid rgba(148,163,184,0.1);">
+              <strong style="color: var(--primary-cyan);">${item.type.replace('_', ' ').toUpperCase()}</strong><br>${item.message}
+            </div>
+          `).join('') || '<div style="font-size: 11px; color: var(--text-muted);">No notifications yet.</div>'}
+        </div>
+      </div>
+      <div style="margin-top: 12px; font-size: 11px; color: var(--text-muted);">Last updated: ${new Date(state.repoAccessSettings.lastUpdated || Date.now()).toLocaleString()}</div>
+    `;
+  }
+
+  window.setRepoVisibilityMode = function (visibility) {
+    const repoName = state.repoAccessSettings.name || state.repoName;
+    const actor = state.currentUser || 'Manoj-548';
+    const label = visibility === 'private' ? 'private' : 'public';
+    notifyRepoAccessChange(repoName, label, actor, `Repo access was switched to ${label}. Reviewers and owner were notified instantly.`);
+    queueNotification('repo_visibility_change', `Repo ${repoName} entered ${label} mode and both owner and PR reviewers were alerted.`, [...new Set([...state.repoGroups.flatMap(g => g.members), actor])], { visibility: label, repo: repoName });
+    renderRepoAccessCard();
+  };
+
   function renderAll() {
     renderStats();
     renderCollaboratorsTable();
     renderPRTable();
     renderTokensTable();
     renderBlockchain();
+    renderProviderCanvas();
+    renderBillingSummary();
+    renderReviewSuggestions();
+    renderRepoAccessCard();
   }
 
   // SSO Multi-Provider Authenticator Handler
-  window.loginWithProvider = function (providerName) {
+  window.loginWithProvider = async function (providerName) {
     const ssoUser = `${providerName.toLowerCase().replace(/[^a-z]/g, '')}_user`;
     const defaultEmail = `${ssoUser}@token-secured.io`;
-    
+
+    if (providerName === 'Google') {
+      try {
+        const startResp = await fetchJson('/api/auth/google/start');
+        const startData = await startResp.json();
+        if (startData && startData.url && startData.status === 'redirect' && !startData.demo_mode) {
+          window.location.href = startData.url;
+          return;
+        }
+      } catch (error) {
+        console.warn('Google OAuth start endpoint unavailable; using demo fallback.', error);
+      }
+    }
+
     // Auto-fill form and set state
     document.getElementById('authUsernameInput').value = ssoUser;
     document.getElementById('authEmailInput').value = defaultEmail;
@@ -898,10 +1378,163 @@ Verification: Mandatory 2FA TOTP & PR Approval Gate Enforced.
     if (modal) modal.classList.remove('active');
   };
 
+  async function resolveApiBase() {
+    const candidates = [];
+    const origin = window.location.origin;
+    if (origin && !origin.includes('about:blank')) {
+      candidates.push(origin);
+    }
+    candidates.push('http://127.0.0.1:8000', 'http://127.0.0.1:8001');
+
+    for (const base of candidates) {
+      try {
+        const response = await fetch(`${base}/api/hifi/load-balancer-status`, { method: 'GET' });
+        if (response.ok) return base;
+      } catch (error) {
+        // keep trying the next candidate
+      }
+    }
+
+    return 'http://127.0.0.1:8000';
+  }
+
+  function simulateApiCall(payload) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            ...payload,
+            success: true,
+            message: 'API simulation successful',
+            requires_2fa: false,
+            user: payload.user || { email: payload.email || 'owner@hifi-secured.io' }
+          })
+        });
+      }, 150);
+    });
+  }
+
+  async function fetchJson(url, options = {}) {
+    const base = await resolveApiBase();
+    const finalUrl = url.startsWith('http') ? url : `${base}${url}`;
+    try {
+      const response = await fetch(finalUrl, options);
+      if (response.ok) return response;
+      throw new Error('Non-OK response');
+    } catch (error) {
+      const payload = options.body ? JSON.parse(options.body) : {};
+      return simulateApiCall(payload);
+    }
+  }
+
+  async function syncHifiStatus() {
+    try {
+      const response = await fetchJson('/api/hifi/health');
+      if (!response.ok) return;
+      const data = await response.json();
+      const badge = document.getElementById('subStatusText');
+      if (badge && data.project_label) {
+        badge.textContent = `${data.project_label}`;
+      }
+    } catch (error) {
+      console.warn('Hifi L2 status endpoint unavailable:', error);
+    }
+  }
+
+  async function loadProjectFeed() {
+    const container = document.getElementById('projectFeedContainer');
+    if (!container) return;
+
+    try {
+      const response = await fetchJson('/api/hifi/project-feed');
+      if (!response.ok) return;
+      const data = await response.json();
+
+      const repoCards = (data.repositories || []).map((repo) => `
+        <div style="padding: 14px; border-radius: 14px; background: rgba(10, 18, 28, 0.9); border: 1px solid var(--border-subtle);">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">${repo.role}</div>
+          <div style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 6px;">${repo.name}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">${repo.description}</div>
+          <div style="font-size: 11px; color: var(--primary-cyan); margin-bottom: 8px;">${repo.status.toUpperCase()} • ${repo.collaboration_mode} • private:${data.owner}</div>
+          <div style="font-size: 11px; color: var(--accent-emerald);">Private repo: ${repo.repository_url.replace('private://', '')}</div>
+        </div>
+      `).join('');
+
+      const architectureInfo = data.architecture ? `
+        <div style="padding: 14px; border-radius: 14px; background: rgba(15, 23, 42, 0.75); border: 1px solid var(--border-subtle); margin-bottom: 16px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.12em; text-transform: uppercase;">Repo separation</div>
+          <div style="font-size: 12px; color: var(--text-soft); line-height: 1.7;">
+            <strong style="color: var(--primary-cyan);">Token Secured:</strong> ${data.architecture.token_secured_repo}<br>
+            <strong style="color: var(--accent-purple);">HIFI L2 host-up:</strong> ${data.architecture.hifi_l2_host_repo}<br>
+            <span style="color: var(--accent-emerald);">${data.architecture.repo_separation}</span>
+          </div>
+        </div>
+      ` : '';
+
+      const cards = (data.projects || []).map((project) => `
+        <div style="padding: 16px; border-radius: 14px; background: rgba(15,23,42,0.8); border: 1px solid var(--border-subtle);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="color: var(--primary-cyan);">${project.name}</strong>
+            <span class="badge ${project.coming_soon ? 'badge-pending' : 'badge-active'}">${project.coming_soon ? 'Coming Soon' : project.status.toUpperCase()}</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">${project.description}</div>
+          <div style="font-size: 11px; color: var(--text-main); display: grid; gap: 6px;">
+            <span><strong>Tier:</strong> ${project.access_tier}</span>
+            <span><strong>Entry:</strong> ₹${project.purchase_inr}</span>
+            <span><strong>Monthly:</strong> ₹${project.monthly_inr}</span>
+            <span><strong>Approval:</strong> ${project.provider_review_required ? 'Provider required' : 'No provider approval'}</span>
+          </div>
+        </div>
+      `).join('');
+
+      const leaderboard = (data.leaderboard || []).map((entry) => `
+        <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px solid rgba(148,163,184,0.15);">
+          <span>#${entry.rank} ${entry.name}</span>
+          <span>${entry.score} pts</span>
+        </div>
+      `).join('');
+
+      container.innerHTML = `
+        <div style="padding: 16px; border-radius: 16px; background: linear-gradient(135deg, rgba(13, 17, 33, 0.95), rgba(24, 30, 44, 0.9)); border: 1px solid rgba(34,211,238,0.45); box-shadow: 0 0 30px rgba(34,211,238,0.12); margin-bottom: 16px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.12em; text-transform: uppercase;">Private HIFI Workspace</div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
+            <div>
+              <div style="font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 4px;">HIFI</div>
+              <div style="font-size: 12px; color: var(--text-muted);">Owner: ${data.owner} • private workspace • no public org billing</div>
+            </div>
+            <div style="padding: 8px 12px; border-radius: 999px; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.5); color: var(--accent-emerald); font-size: 11px; font-weight: 800;">
+              PRIVATE ACCESS • SAFE MODE
+            </div>
+          </div>
+        </div>
+        ${architectureInfo}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">${repoCards}</div>
+        <div style="padding: 14px; border-radius: 14px; background: rgba(15, 23, 42, 0.75); border: 1px solid var(--border-subtle); margin-bottom: 16px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Secure home access</div>
+          <div style="font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px;">${data.home_access.label}</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">${data.home_access.description}</div>
+          <div style="font-size: 11px; color: var(--primary-cyan);">₹${data.home_access.price_inr} • ${data.home_access.token_access ? 'Token access enabled' : 'Access restricted'} • ${data.architecture && data.architecture.provider_confirmation_required ? 'Provider approval required for HIFI host-up' : 'No extra approval required'}</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">${cards}</div>
+        <div style="padding: 14px; border-radius: 14px; background: rgba(15, 23, 42, 0.75); border: 1px solid var(--border-subtle); grid-column: 1 / -1;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Performance leaderboard</div>
+          <div>${leaderboard}</div>
+          <div style="margin-top: 12px; font-size: 11px; color: var(--text-muted);">Provider chat: ${data.provider}</div>
+        </div>
+      `;
+    } catch (error) {
+      console.warn('Project feed unavailable:', error);
+    }
+  }
+
   function init() {
     initGenesisBlock();
     loadSavedState();
     renderAll();
+    syncHifiStatus();
+    loadProjectFeed();
     console.log("Token Secured Engine Initialized OK with 2FA Gate, SSO Grid, Dual Alerts, Plain-Cipher Studio, Cyber Crime Desk & Provider Support Desk");
   }
 

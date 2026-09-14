@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Token Secured - 2FA Security, Collaborator RBAC & PR Approval Gate</title>
+<title>HIFI-SECURED - 2FA Security, Collaborator RBAC & PR Approval Gate</title>
   
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,7 +30,7 @@
         <div style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--primary-cyan), var(--accent-purple)); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #fff; box-shadow: 0 0 30px var(--primary-cyan-glow);">
           <i class="bi bi-shield-lock-fill"></i>
         </div>
-        <h2 id="authModalTitle" style="color: #fff; font-weight: 900; font-size: 26px; letter-spacing: -0.5px; margin-top: 6px;">TOKEN SECURED PORTAL</h2>
+        <h2 id="authModalTitle" style="color: #fff; font-weight: 900; font-size: 26px; letter-spacing: -0.5px; margin-top: 6px;">HIFI-SECURED PORTAL</h2>
         <p id="authModalSubtitle" style="font-size: 14px; color: var(--text-muted);">
           Create your Master Account & Activate $5.00 USD/mo Workspace Subscription.
         </p>
@@ -87,7 +87,7 @@
       </div>
 
       <form id="authForm" onsubmit="handleAuthSubmit(event)">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div class="auth-fields-row" style="margin-bottom: 8px;">
           <div class="form-group">
             <label class="form-label" style="text-align: left; font-size: 13px;">Username / Master Owner ID</label>
             <input type="text" id="authUsernameInput" class="form-input" placeholder="e.g. Manoj-548" style="padding: 12px 16px; font-size: 15px;" required>
@@ -99,7 +99,7 @@
           </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 24px;">
+        <div class="form-group" style="margin-bottom: 12px;">
           <label class="form-label" style="text-align: left; font-size: 13px;">2FA Security Master Passcode (6-Digits)</label>
           <input type="password" id="masterPasscodeInput" class="form-input" placeholder="Enter 6-Digit 2FA Passcode" style="text-align: center; font-size: 24px; height: 56px; letter-spacing: 8px; font-family: var(--font-mono); font-weight: 800;" required>
         </div>
@@ -263,6 +263,87 @@
           </div>
         </div>
 
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-title">
+            <span><i class="bi bi-diagram-3-fill card-title-icon me-2"></i> Current Hifi L2 Projects</span>
+            <span class="badge badge-active"><i class="bi bi-shield-check"></i> Provider Controlled</span>
+          </div>
+          <div id="projectFeedContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 12px;"></div>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-title">
+            <span><i class="bi bi-broadcast-pin card-title-icon me-2"></i> Repo Access & Reviewer Notifications</span>
+            <span class="badge badge-active"><i class="bi bi-bell-fill"></i> Live alerts</span>
+          </div>
+          <div id="repoAccessStatusCard" style="margin-top: 12px;"></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 20px;">
+          <div class="card" style="padding: 18px;">
+            <div class="card-title" style="margin-bottom: 12px;">
+              <span><i class="bi bi-shield-lock-fill card-title-icon me-2"></i> Token Secure App</span>
+              <span class="badge badge-active"><i class="bi bi-currency-rupee"></i> ₹100/month per token</span>
+            </div>
+            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.7;">
+              Unique token issued per account login. Fields remain isolated, masked, and 2FA protected. This app handles account‑specific token generation and secure login issuance.
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn btn-primary" style="font-size: 12px;" onclick="switchView('cipherstudio')"><i class="bi bi-lock-fill"></i> Open Secure Generator</button>
+              <button class="btn btn-secondary" style="font-size: 12px;" onclick="switchView('tokens')"><i class="bi bi-key-fill"></i> View Tokens</button>
+            </div>
+          </div>
+
+          <div class="card" style="padding: 18px;">
+            <div class="card-title" style="margin-bottom: 12px;">
+              <span><i class="bi bi-git card-title-icon me-2"></i> GitHub Collaborator Review App</span>
+              <span class="badge badge-active"><i class="bi bi-currency-rupee"></i> ₹1000 / review</span>
+            </div>
+            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.7;">
+              Shared repo review flow for collaborators, PR submission, provider check, acceptance, and push-owner tracking. New reviewers are billed ₹500 each, while accepted PRs incur ₹1000.
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn btn-primary" style="font-size: 12px;" onclick="switchView('pullrequests')"><i class="bi bi-check2-circle"></i> Open PR Queue</button>
+              <button class="btn btn-secondary" style="font-size: 12px;" onclick="switchView('support')"><i class="bi bi-headset"></i> Provider Review</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-title">
+            <span><i class="bi bi-currency-rupee card-title-icon me-2"></i> Billing & Fee Rules</span>
+            <span class="badge badge-active">HIFI Active Pricing</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 12px;">
+            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">New Token</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹100</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per month</div>
+            </div>
+            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Unique Login Token</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹100</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per account login</div>
+            </div>
+            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">PR Review Acceptance</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹1000</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per accepted review</div>
+            </div>
+            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Push Owner Fee</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹1000</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per push event</div>
+            </div>
+            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">New Review Member</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹500</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per join</div>
+            </div>
+          </div>
+          <div id="billingSummaryList" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(148,163,184,0.12);"></div>
+        </div>
+
         <div class="dashboard-grid">
           
           <!-- Token Creation Generator Card -->
@@ -388,6 +469,51 @@
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <!-- Collaborator PR Submission Form -->
+          <div class="card tokens-card">
+            <div class="card-title">
+              <span><i class="bi bi-send-check-fill card-title-icon me-2"></i> Collaborator PR Request Submission</span>
+            </div>
+
+            <form onsubmit="handleCollaboratorPRSubmit(event)">
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div class="form-group">
+                  <label class="form-label">Repository</label>
+                  <input id="collabRepoInput" class="form-input" value="HIFI-SECURED" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Account / Collaborator</label>
+                  <input id="collabAccountInput" class="form-input" value="collaborator_user" required>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div class="form-group">
+                  <label class="form-label">PR Title</label>
+                  <input id="collabPRTitleInput" class="form-input" placeholder="e.g. Secure token review patch" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Target Branch</label>
+                  <input id="collabBranchInput" class="form-input" value="feature/collab-update" required>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:12px;">
+                <label class="form-label">Build Status / Watch From Mobile or PC</label>
+                <input id="collabBuildInput" class="form-input" value="Build verified on mobile and desktop" required>
+              </div>
+
+              <div class="form-group" style="margin-bottom:16px;">
+                <label class="form-label">Commit Message from Collaborator</label>
+                <textarea id="collabCommitMessageInput" class="form-input" rows="3" placeholder="Describe the staged changes and the exact commit this collaborator wants approved." required></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="bi bi-git-pull-request"></i> Send PR Request for Owner Review
+              </button>
+            </form>
           </div>
 
           <!-- Pending Pull Requests Card -->
@@ -627,6 +753,8 @@
               <span class="badge badge-active">Consultation Desk</span>
             </div>
 
+            <div id="reviewSuggestionsPanel" style="margin-bottom: 18px;"></div>
+
             <form onsubmit="handleScheduleProviderTalk(event)">
               <div class="form-group" style="margin-bottom: 12px;">
                 <label class="form-label">Topic for Discussion</label>
@@ -653,6 +781,33 @@
             </form>
           </div>
 
+          <div class="card gen-card">
+            <div class="card-title">
+              <span><i class="bi bi-pencil-square text-cyan me-2"></i> PR Request Acceptor</span>
+              <span class="badge badge-active"><i class="bi bi-cursor-fill"></i> Canvas Panel</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px;">
+              <div style="font-size: 12px; color: var(--text-muted);">Provider queue</div>
+              <button class="btn btn-secondary" style="font-size: 11px; padding: 6px 10px;" onclick="nextProviderCanvasPR()">
+                <i class="bi bi-arrow-repeat"></i> Next PR
+              </button>
+            </div>
+
+            <canvas id="providerRequestCanvas" width="500" height="300" style="display: block; width: 100%; max-width: 500px; border-radius: 14px; background: #070b14; border: 1px solid rgba(92, 141, 255, 0.32); box-shadow: inset 0 0 30px rgba(34,211,238,0.08); margin: 0 auto 12px auto;"></canvas>
+
+            <div id="providerCanvasStatus" style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Current PR: PR-101 • Add Canvas Export & Filter Feature</div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <button class="btn btn-primary" style="width: 100%;" onclick="acceptCurrentPRFromCanvas()">
+                <i class="bi bi-check-lg"></i> Accept PR
+              </button>
+              <button class="btn btn-secondary" style="width: 100%; color: var(--accent-rose);" onclick="rejectCurrentPRFromCanvas()">
+                <i class="bi bi-x-lg"></i> Reject PR
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -673,11 +828,52 @@
           </div>
 
           <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Review Group</label>
+            <select id="collabGroupInput" class="form-select">
+              <option value="HIFI-SECURED">HIFI-SECURED</option>
+              <option value="GitHub Reviewers">GitHub Reviewers</option>
+              <option value="Security Council">Security Council</option>
+              <option value="Provider Desk">Provider Desk</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 12px;">
             <label class="form-label">Role Assignment</label>
             <select id="collabRoleInput" class="form-select">
-              <option value="Developer">Developer (PR Required)</option>
-              <option value="QA Tester">QA Tester (Read-only / PR Required)</option>
-              <option value="Reviewer">Reviewer (No Direct Push)</option>
+              <option value="provider_owner">Provider Owner</option>
+              <option value="host_l2_up_manager">Host L2 Up Manager</option>
+              <option value="host_l2_up_admin">Host L2 Up Admin</option>
+              <option value="hifi_admin">HIFI Admin</option>
+              <option value="security_ops">Security Ops</option>
+              <option value="identity_admin">Identity Admin</option>
+              <option value="device_security">Device Security</option>
+              <option value="token_security">Token Security</option>
+              <option value="project_manager">Project Manager</option>
+              <option value="delivery_lead">Delivery Lead</option>
+              <option value="team_lead">Team Lead</option>
+              <option value="platform_engineer">Platform Engineer</option>
+              <option value="integration_lead">Integration Lead</option>
+              <option value="encryption_specialist">Encryption Specialist</option>
+              <option value="sso_admin">SSO Admin</option>
+              <option value="developer">Developer</option>
+              <option value="qa_tester">QA Tester</option>
+              <option value="reviewer">Reviewer</option>
+              <option value="release_manager">Release Manager</option>
+              <option value="support_agent">Support Agent</option>
+              <option value="billing_controller">Billing Controller</option>
+              <option value="compliance_officer">Compliance Officer</option>
+              <option value="risk_officer">Risk Officer</option>
+              <option value="incident_manager">Incident Manager</option>
+              <option value="cybercrime_analyst">Cyber Crime Analyst</option>
+              <option value="alert_response">Alert Response</option>
+              <option value="knowledge_owner">Knowledge Owner</option>
+              <option value="community_manager">Community Manager</option>
+              <option value="data_guardian">Data Guardian</option>
+              <option value="observability_lead">Observability Lead</option>
+              <option value="access_coordinator">Access Coordinator</option>
+              <option value="research_specialist">Research Specialist</option>
+              <option value="customer_success">Customer Success</option>
+              <option value="ai_security_guard">AI Security Guard</option>
             </select>
           </div>
 
