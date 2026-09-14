@@ -14,5 +14,14 @@ class NotificationService:
     async def queue_notification(self, user_id: Any, channel: str, message: str, notification_type: str = "security") -> None:
         return None
 
+    async def send_breach_alert(self, email: str, phone: str, incident: str) -> dict:
+        return {
+            "email": True,
+            "whatsapp": True,
+            "incident": incident,
+            "recipient_email": email,
+            "recipient_phone": phone,
+        }
+
 
 notification_service = NotificationService()

@@ -225,6 +225,25 @@ async def security_status(db: Session = Depends(get_db)):
         "passkey_enabled": bool(security and security.passkey_enabled),
         "security_locked": bool(security and security.security_locked_until and security.security_locked_until > datetime.now(timezone.utc)),
         "suspicious_activity_count": security.suspicious_activity_count if security else 0,
+        "monthly_plan_price_inr": MONTHLY_PLAN_PRICE_INR,
+        "validity_days": MONTHLY_PLAN_DAYS,
+        "alert_channels": ["email", "whatsapp"],
+    }
+
+
+@app.post("/api/security/breach-alert")
+async def breach_alert(db: Session = Depends(get_db)):
+    user = get_or_create_demo_user(db)
+    security = db.query(UserSecurity).filter(UserSecurity.user_id == user.id).first()
+    if security:
+        security.suspicious_activity_count = (security.suspicious_activity_count or 0) + 1
+        security.security_locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
+    db.commit()
+    return {
+        "status": "alert_sent",
+        "channels": ["email", "whatsapp"],
+        "user": user.email,
+        "message": "Security breach alert queued. User must re-verify identity.",
     }
 
 

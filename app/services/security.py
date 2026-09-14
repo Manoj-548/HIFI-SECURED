@@ -30,6 +30,8 @@ async def trigger_breach_alert(db: Session, user: User, ip_address: str, device_
     await revoke_user_sessions(db, user.id)
     db.commit()
 
+    return None
+
 
 async def check_plan_validity(db: Session, user_id: UUID) -> bool:
     plan = db.query(UserPlan).filter(UserPlan.user_id == user_id).first()
