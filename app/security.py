@@ -26,8 +26,13 @@ def generate_totp_secret() -> str:
 
 
 def verify_totp(secret: str, code: str) -> bool:
-    totp = pyotp.TOTP(secret)
-    return totp.verify(code, valid_window=1)
+    if not secret or not code:
+        return False
+    try:
+        totp = pyotp.TOTP(secret)
+        return totp.verify(code.strip(), valid_window=1)
+    except Exception:
+        return False
 
 
 def is_plan_active(expires_at: Optional[datetime]) -> bool:
