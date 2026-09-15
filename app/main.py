@@ -253,3 +253,16 @@ async def get_me(db: Session = Depends(get_db)):
     plan = db.query(UserPlan).filter(UserPlan.user_id == user.id).first()
     security = db.query(UserSecurity).filter(UserSecurity.user_id == user.id).first()
     return build_user_response(user, plan, security).model_dump()
+
+
+from fastapi.staticfiles import StaticFiles
+import os
+
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.exists(os.path.join(root_dir, "index.html")):
+    app.mount("/", StaticFiles(directory=root_dir, html=True), name="static")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8080, reload=True)
+

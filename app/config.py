@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 class Settings:
     app_name: str = "Token Secured"
     environment: str = os.getenv("APP_ENV", "development")
-    database_url: str = os.getenv("DATABASE_URL", "postgresql+psycopg://postgres:postgres@localhost:5432/token_secured")
+    database_url: str = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/db/token_secured.db")
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
     google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     google_redirect_uri: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8001/api/auth/google/callback")

@@ -1,8 +1,7 @@
 from datetime import datetime
-from uuid import uuid4
+from uuid import uuid4, UUID as PyUUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import INET, UUID
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -13,7 +12,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     google_user_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -34,8 +33,8 @@ class User(Base):
 class UserSecurity(Base):
     __tablename__ = "user_security"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
     is_2fa_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     two_fa_method: Mapped[str] = mapped_column(String(40), default="totp", nullable=False)
     secret_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -52,8 +51,8 @@ class UserSecurity(Base):
 class UserPlan(Base):
     __tablename__ = "user_plan"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
     plan_name: Mapped[str] = mapped_column(String(80), default="monthly", nullable=False)
     price_in_rupees: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="inactive", nullable=False)
@@ -69,12 +68,12 @@ class UserPlan(Base):
 class Session(Base):
     __tablename__ = "sessions"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     session_token_hash: Mapped[str] = mapped_column(Text, nullable=False)
     refresh_token_hash: Mapped[str] = mapped_column(Text, nullable=False)
     device_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -89,10 +88,10 @@ class Session(Base):
 class AccessLog(Base):
     __tablename__ = "access_logs"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    session_id: Mapped[UUID | None] = mapped_column(ForeignKey("sessions.id"), nullable=True)
-    ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    session_id: Mapped[PyUUID | None] = mapped_column(ForeignKey("sessions.id"), nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     action: Mapped[str] = mapped_column(String(120), nullable=False)
     endpoint: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -103,11 +102,11 @@ class AccessLog(Base):
 class SecurityEvent(Base):
     __tablename__ = "security_events"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     event_type: Mapped[str] = mapped_column(String(120), nullable=False)
     severity: Mapped[str] = mapped_column(String(30), default="medium", nullable=False)
-    ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     device_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
@@ -119,10 +118,10 @@ class SecurityEvent(Base):
 class LoginAttempt(Base):
     __tablename__ = "login_attempts"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     success: Mapped[bool] = mapped_column(Boolean, nullable=False)
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
@@ -131,21 +130,21 @@ class LoginAttempt(Base):
 class Device(Base):
     __tablename__ = "devices"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID] = mapped_column(ForeignKey("users.id"), nullable=False)
     device_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     device_id: Mapped[str] = mapped_column(String(255), nullable=False)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     trusted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     country: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    ip_address: Mapped[str | None] = mapped_column(INET, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
 
 
 class Notification(Base):
     __tablename__ = "notifications"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     notification_type: Mapped[str] = mapped_column(String(120), nullable=False)
     channel: Mapped[str] = mapped_column(String(40), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
