@@ -1,4 +1,6 @@
 .venv/
+.ssl/
+generate-ssl.js
 __pycache__/
 *.pyc
 *.pyo
