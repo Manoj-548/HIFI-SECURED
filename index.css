@@ -74,6 +74,18 @@ a, button, input, select, textarea {
   font: inherit;
 }
 
+/* ===== FULL-WIDTH APP CONTAINER ===== */
+#app {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 20px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  flex: 1;
+}
+
 #app,
 .view-panel,
 .dashboard-grid {
@@ -86,6 +98,7 @@ a, button, input, select, textarea {
   width: 100%;
   min-height: 100%;
   position: relative;
+  padding: 8px 0 20px;
 }
 
 .text-primary,
@@ -123,19 +136,7 @@ p, span, div, label, th, td, li, strong, small {
   color: inherit;
 }
 
-/* App Container */
-#app {
-  max-width: 1360px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 20px 18px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  flex: 1;
-}
-
-/* Header Navbar */
+/* ===== HEADER NAVBAR (FULL WIDTH) ===== */
 .app-header {
   background: rgba(11, 18, 28, 0.9);
   backdrop-filter: blur(16px);
@@ -151,6 +152,7 @@ p, span, div, label, th, td, li, strong, small {
   top: 12px;
   z-index: 100;
   gap: 16px;
+  width: 100%;
 }
 
 .brand-logo {
@@ -158,6 +160,7 @@ p, span, div, label, th, td, li, strong, small {
   align-items: center;
   gap: 12px;
   text-decoration: none;
+  flex-shrink: 0;
 }
 
 .brand-icon {
@@ -190,7 +193,7 @@ p, span, div, label, th, td, li, strong, small {
   text-transform: uppercase;
 }
 
-/* Navigation Tabs */
+/* ===== NAVIGATION TABS (SCROLLABLE) ===== */
 .nav-tabs {
   display: flex;
   background: rgba(15, 23, 42, 0.8);
@@ -198,6 +201,15 @@ p, span, div, label, th, td, li, strong, small {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-tab {
@@ -213,6 +225,8 @@ p, span, div, label, th, td, li, strong, small {
   align-items: center;
   gap: 8px;
   transition: var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-tab:hover {
@@ -231,6 +245,7 @@ p, span, div, label, th, td, li, strong, small {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .shield-badge {
@@ -244,6 +259,7 @@ p, span, div, label, th, td, li, strong, small {
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .shield-badge .dot {
@@ -261,13 +277,7 @@ p, span, div, label, th, td, li, strong, small {
   100% { transform: scale(0.95); opacity: 0.8; }
 }
 
-/* Main Dashboard Grid */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 20px;
-}
-
+/* ===== CARD (FULL WIDTH BY DEFAULT) ===== */
 .card {
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(9, 15, 25, 0.92));
   backdrop-filter: blur(12px);
@@ -282,112 +292,12 @@ p, span, div, label, th, td, li, strong, small {
   position: relative;
   overflow: hidden;
   transition: var(--transition-normal);
+  width: 100%;
 }
 
 .card:hover {
   border-color: var(--border-glow);
   box-shadow: 0 12px 36px rgba(6, 182, 212, 0.08);
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 22px;
-  align-items: stretch;
-}
-
-.view-panel {
-  padding: 8px 2px 20px;
-}
-
-.toast-notification {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 2000;
-  max-width: 360px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: rgba(11, 18, 28, 0.96);
-  border: 1px solid var(--border-glow);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-  color: var(--text-main);
-}
-
-.alert-channel-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.sso-badge-last {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: rgba(73, 215, 255, 0.12);
-  border: 1px solid rgba(73, 215, 255, 0.28);
-  color: var(--primary-cyan);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.btn:focus-visible,
-.form-input:focus-visible,
-.form-select:focus-visible,
-.nav-tab:focus-visible,
-.sso-btn:focus-visible {
-  outline: 2px solid var(--primary-cyan);
-  outline-offset: 2px;
-}
-
-@media (max-width: 768px) {
-  #app {
-    padding: 10px;
-  }
-
-  .app-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-    padding: 14px 16px;
-  }
-
-  .header-actions {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .nav-tabs {
-    flex-wrap: wrap;
-  }
-
-  .payment-method-selector,
-  .sso-providers-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .card,
-  .modal-container {
-    padding: 18px 16px;
-  }
 }
 
 .card-title {
@@ -398,18 +308,91 @@ p, span, div, label, th, td, li, strong, small {
   justify-content: space-between;
   gap: 8px;
   color: #fff;
+  flex-wrap: wrap;
 }
 
 .card-title-icon {
   color: var(--primary-cyan);
 }
 
-/* Quick Stats Bar */
+/* ===== CARD ACTIONS (BUTTONS CONTAINED) ===== */
+.card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.card-actions .btn {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== TWO-COLUMN LAYOUT (REPLACES dashboard-grid for 2-col) ===== */
+.dashboard-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  width: 100%;
+}
+
+@media (max-width: 992px) {
+  .dashboard-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== LEGACY DASHBOARD GRID (kept for backward compat) ===== */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 22px;
+  align-items: stretch;
+  width: 100%;
+}
+
+/* ===== BILLING GRID ===== */
+.billing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.billing-item {
+  background: rgba(15,23,42,0.7);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(34,211,238,0.22);
+}
+
+.billing-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.billing-price {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  margin-top: 6px;
+}
+
+.billing-period {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ===== QUICK STATS BAR ===== */
 .stats-container {
-  grid-column: span 12;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
+  width: 100%;
 }
 
 .stat-box {
@@ -430,6 +413,7 @@ p, span, div, label, th, td, li, strong, small {
   align-items: center;
   justify-content: center;
   font-size: 22px;
+  flex-shrink: 0;
 }
 
 .stat-icon.cyan { background: rgba(6, 182, 212, 0.15); color: var(--primary-cyan); }
@@ -450,15 +434,7 @@ p, span, div, label, th, td, li, strong, small {
   font-weight: 600;
 }
 
-/* Token Generation Card */
-.gen-card {
-  grid-column: span 7;
-}
-
-@media (max-width: 992px) {
-  .gen-card { grid-column: span 12; }
-}
-
+/* ===== FORMS ===== */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -497,6 +473,7 @@ p, span, div, label, th, td, li, strong, small {
   box-shadow: 0 0 12px var(--primary-cyan-glow);
 }
 
+/* ===== BUTTONS ===== */
 .btn {
   padding: 12px 24px;
   border-radius: var(--radius-sm);
@@ -510,6 +487,7 @@ p, span, div, label, th, td, li, strong, small {
   gap: 8px;
   transition: var(--transition-fast);
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -545,15 +523,12 @@ p, span, div, label, th, td, li, strong, small {
   box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
 }
 
-/* Tokens List Table Card */
-.tokens-card {
-  grid-column: span 12;
-}
-
+/* ===== TOKENS TABLE ===== */
 .tokens-table-wrap {
   overflow-x: auto;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
+  width: 100%;
 }
 
 .tokens-table {
@@ -605,6 +580,7 @@ p, span, div, label, th, td, li, strong, small {
   border: 1px solid rgba(6, 182, 212, 0.3);
 }
 
+/* ===== BADGES ===== */
 .badge {
   padding: 4px 10px;
   border-radius: 99px;
@@ -615,26 +591,19 @@ p, span, div, label, th, td, li, strong, small {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
 }
 
 .badge-active { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
 .badge-pending { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
 .badge-revoked { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
 
-/* Blockchain Explorer Card */
-.blockchain-card {
-  grid-column: span 5;
-}
-
-@media (max-width: 992px) {
-  .blockchain-card { grid-column: span 12; }
-}
-
+/* ===== BLOCKCHAIN AUDIT STREAM ===== */
 .block-chain-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 420px;
+  max-height: 600px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -674,7 +643,7 @@ p, span, div, label, th, td, li, strong, small {
   word-break: break-all;
 }
 
-/* Modals */
+/* ===== MODALS ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -723,6 +692,33 @@ p, span, div, label, th, td, li, strong, small {
   background: linear-gradient(90deg, var(--primary-cyan), var(--accent-purple), var(--accent-emerald));
 }
 
+.modal-overlay.active .modal-container {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+}
+
 /* Subscription Plan Box in Auth Modal */
 .subscription-card-box {
   background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(139, 92, 246, 0.08));
@@ -738,6 +734,8 @@ p, span, div, label, th, td, li, strong, small {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .sub-plan-badge {
@@ -795,34 +793,6 @@ p, span, div, label, th, td, li, strong, small {
   background: rgba(6, 182, 212, 0.15);
   border-color: var(--primary-cyan);
   color: #fff;
-}
-
-
-.modal-overlay.active .modal-container {
-  transform: translateY(0);
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.modal-close {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 20px;
-  cursor: pointer;
 }
 
 .reveal-box {
@@ -910,16 +880,6 @@ p, span, div, label, th, td, li, strong, small {
   gap: 12px;
   margin-bottom: 12px;
   width: 100%;
-}
-
-@media (max-width: 640px) {
-  .sso-providers-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .sso-btn.sso-enterprise {
-    grid-column: span 1;
-  }
 }
 
 .sso-btn {
@@ -1017,11 +977,22 @@ p, span, div, label, th, td, li, strong, small {
   align-items: center;
   gap: 12px;
   animation: slideInToast 0.3s ease forwards;
+  max-width: 360px;
 }
 
 @keyframes slideInToast {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+/* Focus States */
+.btn:focus-visible,
+.form-input:focus-visible,
+.form-select:focus-visible,
+.nav-tab:focus-visible,
+.sso-btn:focus-visible {
+  outline: 2px solid var(--primary-cyan);
+  outline-offset: 2px;
 }
 
 /* Footer */
@@ -1032,4 +1003,65 @@ p, span, div, label, th, td, li, strong, small {
   color: var(--text-dim);
   border-top: 1px solid var(--border-subtle);
   margin-top: auto;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1200px) {
+  .app-header {
+    flex-wrap: wrap;
+  }
+  .nav-tabs {
+    order: 3;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  #app {
+    padding: 10px;
+  }
+
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .payment-method-selector,
+  .sso-providers-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid,
+  .dashboard-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .alert-channels-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card,
+  .modal-container {
+    padding: 18px 16px;
+  }
+
+  .sso-btn.sso-enterprise {
+    grid-column: span 1;
+  }
 }

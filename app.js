@@ -1350,7 +1350,7 @@ Verification: Mandatory 2FA TOTP & PR Approval Gate Enforced.
     }
   };
 
-  // Enhanced Switch View Handler
+  // Enhanced Switch View Handler — All 8 Tabs Mapped
   window.switchView = function (viewName) {
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.classList.toggle('active', tab.getAttribute('data-view') === viewName);
@@ -1360,11 +1360,19 @@ Verification: Mandatory 2FA TOTP & PR Approval Gate Enforced.
       panel.style.display = 'none';
     });
 
-    const targetView = document.getElementById(viewName === 'dashboard' ? 'viewDashboard' : 
-                       viewName === 'cipherstudio' ? 'viewCipherStudio' :
-                       viewName === 'cybercrime' ? 'viewCyberCrime' :
-                       viewName === 'support' ? 'viewSupport' : 'viewDashboard');
-    
+    const viewMap = {
+      'dashboard': 'viewDashboard',
+      'cipherstudio': 'viewCipherStudio',
+      'cybercrime': 'viewCyberCrime',
+      'support': 'viewSupport',
+      'tokens': 'viewTokens',
+      'collaborators': 'viewCollaborators',
+      'pullrequests': 'viewPullRequests',
+      'blockchain': 'viewBlockchain'
+    };
+
+    const targetId = viewMap[viewName] || 'viewDashboard';
+    const targetView = document.getElementById(targetId);
     if (targetView) targetView.style.display = 'block';
   };
 

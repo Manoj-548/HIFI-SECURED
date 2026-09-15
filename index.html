@@ -225,7 +225,7 @@
     <!-- Main Views Container -->
     <main id="viewContainer">
       
-      <!-- DASHBOARD VIEW -->
+      <!-- ===================== DASHBOARD VIEW ===================== -->
       <div id="viewDashboard" class="view-panel">
         
         <!-- Stats Row -->
@@ -279,8 +279,8 @@
           <div id="repoAccessStatusCard" style="margin-top: 12px;"></div>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 20px;">
-          <div class="card" style="padding: 18px;">
+        <div class="dashboard-two-col">
+          <div class="card">
             <div class="card-title" style="margin-bottom: 12px;">
               <span><i class="bi bi-shield-lock-fill card-title-icon me-2"></i> Token Secure App</span>
               <span class="badge badge-active"><i class="bi bi-currency-rupee"></i> ₹100/month per token</span>
@@ -288,13 +288,13 @@
             <div style="font-size: 13px; color: var(--text-muted); line-height: 1.7;">
               Unique token issued per account login. Fields remain isolated, masked, and 2FA protected. This app handles account‑specific token generation and secure login issuance.
             </div>
-            <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <div class="card-actions">
               <button class="btn btn-primary" style="font-size: 12px;" onclick="switchView('cipherstudio')"><i class="bi bi-lock-fill"></i> Open Secure Generator</button>
               <button class="btn btn-secondary" style="font-size: 12px;" onclick="switchView('tokens')"><i class="bi bi-key-fill"></i> View Tokens</button>
             </div>
           </div>
 
-          <div class="card" style="padding: 18px;">
+          <div class="card">
             <div class="card-title" style="margin-bottom: 12px;">
               <span><i class="bi bi-git card-title-icon me-2"></i> GitHub Collaborator Review App</span>
               <span class="badge badge-active"><i class="bi bi-currency-rupee"></i> ₹1000 / review</span>
@@ -302,267 +302,279 @@
             <div style="font-size: 13px; color: var(--text-muted); line-height: 1.7;">
               Shared repo review flow for collaborators, PR submission, provider check, acceptance, and push-owner tracking. New reviewers are billed ₹500 each, while accepted PRs incur ₹1000.
             </div>
-            <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <div class="card-actions">
               <button class="btn btn-primary" style="font-size: 12px;" onclick="switchView('pullrequests')"><i class="bi bi-check2-circle"></i> Open PR Queue</button>
               <button class="btn btn-secondary" style="font-size: 12px;" onclick="switchView('support')"><i class="bi bi-headset"></i> Provider Review</button>
             </div>
           </div>
         </div>
 
-        <div class="card" style="margin-bottom: 20px;">
+        <div class="card" style="margin-top: 20px;">
           <div class="card-title">
             <span><i class="bi bi-currency-rupee card-title-icon me-2"></i> Billing & Fee Rules</span>
             <span class="badge badge-active">HIFI Active Pricing</span>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 12px;">
-            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
-              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">New Token</div>
-              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹100</div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per month</div>
+          <div class="billing-grid">
+            <div class="billing-item">
+              <div class="billing-label">New Token</div>
+              <div class="billing-price">₹100</div>
+              <div class="billing-period">per month</div>
             </div>
-            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
-              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Unique Login Token</div>
-              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹100</div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per account login</div>
+            <div class="billing-item">
+              <div class="billing-label">Unique Login Token</div>
+              <div class="billing-price">₹100</div>
+              <div class="billing-period">per account login</div>
             </div>
-            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
-              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">PR Review Acceptance</div>
-              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹1000</div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per accepted review</div>
+            <div class="billing-item">
+              <div class="billing-label">PR Review Acceptance</div>
+              <div class="billing-price">₹1000</div>
+              <div class="billing-period">per accepted review</div>
             </div>
-            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
-              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Push Owner Fee</div>
-              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹1000</div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per push event</div>
+            <div class="billing-item">
+              <div class="billing-label">Push Owner Fee</div>
+              <div class="billing-price">₹1000</div>
+              <div class="billing-period">per push event</div>
             </div>
-            <div style="background: rgba(15,23,42,0.7); padding: 12px; border-radius: 12px; border: 1px solid rgba(34,211,238,0.22);">
-              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">New Review Member</div>
-              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 6px;">₹500</div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">per join</div>
+            <div class="billing-item">
+              <div class="billing-label">New Review Member</div>
+              <div class="billing-price">₹500</div>
+              <div class="billing-period">per join</div>
             </div>
           </div>
           <div id="billingSummaryList" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(148,163,184,0.12);"></div>
         </div>
 
-        <div class="dashboard-grid">
+        <!-- Multi-Channel Security Alerts & PR Approval Gate Card -->
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-title">
+            <span><i class="bi bi-bell-fill card-title-icon me-2"></i> Multi-Channel Security Alerts & PR Gate</span>
+            <span class="badge badge-active"><i class="bi bi-broadcast"></i> Dual Dispatch</span>
+          </div>
           
-          <!-- Token Creation Generator Card -->
-          <div class="card gen-card">
-            <div class="card-title">
-              <span><i class="bi bi-plus-circle-fill card-title-icon me-2"></i> Generate Token (Account Isolated)</span>
-              <span class="badge badge-active"><i class="bi bi-shield-check"></i> Isolated Vault</span>
+          <div class="email-simulation">
+            <div class="email-meta">
+              <i class="bi bi-shield-lock-fill text-info me-1"></i> <strong>Dual Email & WhatsApp Alert Dispatcher Active</strong>
+            </div>
+            <div style="font-size: 13px; margin-bottom: 10px;">
+              All unusual activities, device sign-ins, token usage, or PR requests trigger real-time notifications sent simultaneously to <strong>Email AND WhatsApp</strong>.
             </div>
 
-            <form id="tokenGenForm" onsubmit="handleTokenGenerate(event)">
-              <div class="form-group">
-                <label class="form-label">Token Label / Purpose</label>
-                <input type="text" id="tokenLabelInput" class="form-input" placeholder="e.g. Personal API Key / App Authorization" required>
+            <div class="alert-channels-grid">
+              <div class="alert-channel-badge">
+                <i class="bi bi-envelope-check-fill text-purple"></i> Email: <span id="displayUserEmail">owner@account.org</span>
               </div>
-
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
-                <div class="form-group">
-                  <label class="form-label">Expiration Period</label>
-                  <select id="tokenExpiryInput" class="form-select">
-                    <option value="15">15 Minutes (Strict Security)</option>
-                    <option value="60" selected>1 Hour</option>
-                    <option value="1440">24 Hours</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">2FA Safeguard</label>
-                  <select id="tokenAlertLevelInput" class="form-select">
-                    <option value="strict" selected>Enforce 2FA OTP + Instant Email Alert</option>
-                    <option value="standard">Standard Log</option>
-                  </select>
-                </div>
+              <div class="alert-channel-badge">
+                <i class="bi bi-whatsapp text-emerald"></i> WhatsApp: <span>+1-800-WA-NOTIFY</span>
               </div>
+            </div>
 
-              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">
-                <i class="bi bi-lock-fill"></i> Create & Mask Invisible Token
+            <div class="card-actions" style="margin-top: 12px;">
+              <button class="btn btn-secondary" style="flex: 1; font-size: 12px;" onclick="simulateMultiAlertDispatch()">
+                <i class="bi bi-bell-fill text-amber"></i> Test Dual Alert (Email + WhatsApp)
               </button>
-            </form>
-          </div>
-
-          <!-- Multi-Channel Security Alerts & PR Approval Gate Card -->
-          <div class="card blockchain-card">
-            <div class="card-title">
-              <span><i class="bi bi-bell-fill card-title-icon me-2"></i> Multi-Channel Security Alerts & PR Gate</span>
-              <span class="badge badge-active"><i class="bi bi-broadcast"></i> Dual Dispatch</span>
-            </div>
-            
-            <div class="email-simulation">
-              <div class="email-meta">
-                <i class="bi bi-shield-lock-fill text-info me-1"></i> <strong>Dual Email & WhatsApp Alert Dispatcher Active</strong>
-              </div>
-              <div style="font-size: 13px; margin-bottom: 10px;">
-                All unusual activities, device sign-ins, token usage, or PR requests trigger real-time notifications sent simultaneously to <strong>Email AND WhatsApp</strong>.
-              </div>
-
-              <div class="alert-channels-grid">
-                <div class="alert-channel-badge">
-                  <i class="bi bi-envelope-check-fill text-purple"></i> Email: <span id="displayUserEmail">owner@account.org</span>
-                </div>
-                <div class="alert-channel-badge">
-                  <i class="bi bi-whatsapp text-emerald"></i> WhatsApp: <span>+1-800-WA-NOTIFY</span>
-                </div>
-              </div>
-
-              <div style="display: flex; gap: 8px; margin-top: 12px;">
-                <button class="btn btn-secondary" style="flex: 1; font-size: 12px;" onclick="simulateMultiAlertDispatch()">
-                  <i class="bi bi-bell-fill text-amber"></i> Test Dual Alert (Email + WhatsApp)
-                </button>
-                <button class="btn btn-secondary" style="font-size: 12px;" onclick="simulateCollaboratorPRSubmission()">
-                  <i class="bi bi-git text-purple"></i> Test PR Gate
-                </button>
-              </div>
-            </div>
-          <!-- Account Obfuscated Tokens Card -->
-          <div class="card tokens-card">
-            <div class="card-title">
-              <span><i class="bi bi-key-fill card-title-icon me-2"></i> Account Obfuscated Invisible Tokens</span>
-              <span class="badge badge-active"><i class="bi bi-lock-fill"></i> Zero-Knowledge Vault</span>
-            </div>
-
-            <div class="tokens-table-wrap">
-              <table class="tokens-table">
-                <thead>
-                  <tr>
-                    <th>Token ID</th>
-                    <th>Label / Purpose</th>
-                    <th>Invisible Token Code (Obfuscated)</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Actions (GitHub Copy / Regenerate)</th>
-                  </tr>
-                </thead>
-                <tbody id="tokensTableBody">
-                  <!-- Populated dynamically -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Collaborators Management Card -->
-          <div class="card tokens-card">
-            <div class="card-title">
-              <span><i class="bi bi-people-fill card-title-icon me-2"></i> Collaborator Access Control</span>
-              <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="openModal('modalAddCollaborator')">
-                <i class="bi bi-person-plus"></i> Invite Collaborator
+              <button class="btn btn-secondary" style="font-size: 12px;" onclick="simulateCollaboratorPRSubmission()">
+                <i class="bi bi-git text-purple"></i> Test PR Gate
               </button>
             </div>
-
-            <div class="tokens-table-wrap">
-              <table class="tokens-table">
-                <thead>
-                  <tr>
-                    <th>Username</th>
-                    <th>Role</th>
-                    <th>Access Scopes</th>
-                    <th>Direct Push</th>
-                    <th>PR Required</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="collaboratorsTableBody">
-                  <!-- Populated dynamically -->
-                </tbody>
-              </table>
-            </div>
           </div>
-
-          <!-- Collaborator PR Submission Form -->
-          <div class="card tokens-card">
-            <div class="card-title">
-              <span><i class="bi bi-send-check-fill card-title-icon me-2"></i> Collaborator PR Request Submission</span>
-            </div>
-
-            <form onsubmit="handleCollaboratorPRSubmit(event)">
-              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
-                <div class="form-group">
-                  <label class="form-label">Repository</label>
-                  <input id="collabRepoInput" class="form-input" value="HIFI-SECURED" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Account / Collaborator</label>
-                  <input id="collabAccountInput" class="form-input" value="collaborator_user" required>
-                </div>
-              </div>
-
-              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
-                <div class="form-group">
-                  <label class="form-label">PR Title</label>
-                  <input id="collabPRTitleInput" class="form-input" placeholder="e.g. Secure token review patch" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Target Branch</label>
-                  <input id="collabBranchInput" class="form-input" value="feature/collab-update" required>
-                </div>
-              </div>
-
-              <div class="form-group" style="margin-bottom:12px;">
-                <label class="form-label">Build Status / Watch From Mobile or PC</label>
-                <input id="collabBuildInput" class="form-input" value="Build verified on mobile and desktop" required>
-              </div>
-
-              <div class="form-group" style="margin-bottom:16px;">
-                <label class="form-label">Commit Message from Collaborator</label>
-                <textarea id="collabCommitMessageInput" class="form-input" rows="3" placeholder="Describe the staged changes and the exact commit this collaborator wants approved." required></textarea>
-              </div>
-
-              <button type="submit" class="btn btn-primary" style="width: 100%;">
-                <i class="bi bi-git-pull-request"></i> Send PR Request for Owner Review
-              </button>
-            </form>
-          </div>
-
-          <!-- Pending Pull Requests Card -->
-          <div class="card tokens-card">
-            <div class="card-title">
-              <span><i class="bi bi-git card-title-icon me-2"></i> Pending Pull Requests (PR Approval Required)</span>
-            </div>
-
-            <div class="tokens-table-wrap">
-              <table class="tokens-table">
-                <thead>
-                  <tr>
-                    <th>PR ID</th>
-                    <th>Author</th>
-                    <th>Proposed Change</th>
-                    <th>Target Branch</th>
-                    <th>Status</th>
-                    <th>Owner Approval</th>
-                  </tr>
-                </thead>
-                <tbody id="prTableBody">
-                  <!-- Populated dynamically -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Blockchain Audit Stream Card -->
-          <div class="card tokens-card">
-            <div class="card-title">
-              <span><i class="bi bi-boxes card-title-icon me-2"></i> Immutable Audit Stream</span>
-              <span class="badge badge-active">SHA-256 Chain</span>
-            </div>
-            
-            <div id="blockchainStream" class="block-chain-list">
-              <!-- Blocks populated dynamically -->
-            </div>
-          </div>
-
         </div>
 
       </div>
 
+      <!-- ===================== TOKENS VIEW (SEPARATE PAGE) ===================== -->
+      <div id="viewTokens" class="view-panel" style="display:none;">
+
+        <!-- Token Creation Generator Card -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-title">
+            <span><i class="bi bi-plus-circle-fill card-title-icon me-2"></i> Generate Token (Account Isolated)</span>
+            <span class="badge badge-active"><i class="bi bi-shield-check"></i> Isolated Vault</span>
+          </div>
+
+          <form id="tokenGenForm" onsubmit="handleTokenGenerate(event)">
+            <div class="form-group">
+              <label class="form-label">Token Label / Purpose</label>
+              <input type="text" id="tokenLabelInput" class="form-input" placeholder="e.g. Personal API Key / App Authorization" required>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+              <div class="form-group">
+                <label class="form-label">Expiration Period</label>
+                <select id="tokenExpiryInput" class="form-select">
+                  <option value="15">15 Minutes (Strict Security)</option>
+                  <option value="60" selected>1 Hour</option>
+                  <option value="1440">24 Hours</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">2FA Safeguard</label>
+                <select id="tokenAlertLevelInput" class="form-select">
+                  <option value="strict" selected>Enforce 2FA OTP + Instant Email Alert</option>
+                  <option value="standard">Standard Log</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+              <i class="bi bi-lock-fill"></i> Create & Mask Invisible Token
+            </button>
+          </form>
+        </div>
+
+        <!-- Account Obfuscated Tokens Table -->
+        <div class="card">
+          <div class="card-title">
+            <span><i class="bi bi-key-fill card-title-icon me-2"></i> Account Obfuscated Invisible Tokens</span>
+            <span class="badge badge-active"><i class="bi bi-lock-fill"></i> Zero-Knowledge Vault</span>
+          </div>
+
+          <div class="tokens-table-wrap">
+            <table class="tokens-table">
+              <thead>
+                <tr>
+                  <th>Token ID</th>
+                  <th>Label / Purpose</th>
+                  <th>Invisible Token Code (Obfuscated)</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions (GitHub Copy / Regenerate)</th>
+                </tr>
+              </thead>
+              <tbody id="tokensTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== COLLABORATORS VIEW (SEPARATE PAGE) ===================== -->
+      <div id="viewCollaborators" class="view-panel" style="display:none;">
+
+        <!-- Collaborators Management Card -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-title">
+            <span><i class="bi bi-people-fill card-title-icon me-2"></i> Collaborator Access Control</span>
+            <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="openModal('modalAddCollaborator')">
+              <i class="bi bi-person-plus"></i> Invite Collaborator
+            </button>
+          </div>
+
+          <div class="tokens-table-wrap">
+            <table class="tokens-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Access Scopes</th>
+                  <th>Direct Push</th>
+                  <th>PR Required</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="collaboratorsTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== PR APPROVALS VIEW (SEPARATE PAGE) ===================== -->
+      <div id="viewPullRequests" class="view-panel" style="display:none;">
+
+        <!-- Collaborator PR Submission Form -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-title">
+            <span><i class="bi bi-send-check-fill card-title-icon me-2"></i> Collaborator PR Request Submission</span>
+          </div>
+
+          <form onsubmit="handleCollaboratorPRSubmit(event)">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div class="form-group">
+                <label class="form-label">Repository</label>
+                <input id="collabRepoInput" class="form-input" value="HIFI-SECURED" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Account / Collaborator</label>
+                <input id="collabAccountInput" class="form-input" value="collaborator_user" required>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div class="form-group">
+                <label class="form-label">PR Title</label>
+                <input id="collabPRTitleInput" class="form-input" placeholder="e.g. Secure token review patch" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Target Branch</label>
+                <input id="collabBranchInput" class="form-input" value="feature/collab-update" required>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">Build Status / Watch From Mobile or PC</label>
+              <input id="collabBuildInput" class="form-input" value="Build verified on mobile and desktop" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px;">
+              <label class="form-label">Commit Message from Collaborator</label>
+              <textarea id="collabCommitMessageInput" class="form-input" rows="3" placeholder="Describe the staged changes and the exact commit this collaborator wants approved." required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+              <i class="bi bi-git-pull-request"></i> Send PR Request for Owner Review
+            </button>
+          </form>
+        </div>
+
+        <!-- Pending Pull Requests Card -->
+        <div class="card">
+          <div class="card-title">
+            <span><i class="bi bi-git card-title-icon me-2"></i> Pending Pull Requests (PR Approval Required)</span>
+          </div>
+
+          <div class="tokens-table-wrap">
+            <table class="tokens-table">
+              <thead>
+                <tr>
+                  <th>PR ID</th>
+                  <th>Author</th>
+                  <th>Proposed Change</th>
+                  <th>Target Branch</th>
+                  <th>Status</th>
+                  <th>Owner Approval</th>
+                </tr>
+              </thead>
+              <tbody id="prTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== AUDIT LEDGER VIEW (SEPARATE PAGE) ===================== -->
+      <div id="viewBlockchain" class="view-panel" style="display:none;">
+        <div class="card">
+          <div class="card-title">
+            <span><i class="bi bi-boxes card-title-icon me-2"></i> Immutable Audit Stream</span>
+            <span class="badge badge-active">SHA-256 Chain</span>
+          </div>
+          
+          <div id="blockchainStream" class="block-chain-list">
+            <!-- Blocks populated dynamically -->
+          </div>
+        </div>
+      </div>
+
       <!-- PLAIN-TO-CIPHER & CIPHER-TO-PLAIN CONVERSION STUDIO -->
       <div id="viewCipherStudio" class="view-panel" style="display:none;">
-        <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="dashboard-two-col">
           
           <!-- Plain to Cipher Encryption Card -->
-          <div class="card gen-card">
+          <div class="card">
             <div class="card-title">
               <span><i class="bi bi-lock-fill text-cyan me-2"></i> Plain Text ➔ Ciphertext Encryption</span>
               <span class="badge badge-active">AES-256 GCM</span>
@@ -594,7 +606,7 @@
           </div>
 
           <!-- Cipher to Plain Decryption Card -->
-          <div class="card gen-card">
+          <div class="card">
             <div class="card-title">
               <span><i class="bi bi-key-fill text-emerald me-2"></i> Ciphertext ➔ Plain Text Decryption</span>
               <span class="badge badge-active"><i class="bi bi-shield-check"></i> 2FA Enforced</span>
@@ -640,76 +652,74 @@
 
       <!-- CYBER CRIME ESCALATION DESK VIEW -->
       <div id="viewCyberCrime" class="view-panel" style="display:none;">
-        <div class="dashboard-grid">
           
-          <div class="card blockchain-card">
-            <div class="card-title">
-              <span><i class="bi bi-shield-exclamation text-rose me-2"></i> Cyber Crime Incident Escalation & Breach Desk</span>
-              <span class="badge badge-revoked"><i class="bi bi-lock-fill"></i> Provider Escalation Active</span>
+        <div class="card">
+          <div class="card-title">
+            <span><i class="bi bi-shield-exclamation text-rose me-2"></i> Cyber Crime Incident Escalation & Breach Desk</span>
+            <span class="badge badge-revoked"><i class="bi bi-lock-fill"></i> Provider Escalation Active</span>
+          </div>
+
+          <div class="email-simulation" style="background: rgba(244, 63, 94, 0.08); border-color: rgba(244, 63, 94, 0.3);">
+            <div class="email-meta" style="color: var(--accent-rose);">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Real-Time Breach Protection & Provider Cyber Crime Escalation</strong>
+            </div>
+            <div style="font-size: 13px; color: var(--text-main); margin-bottom: 14px;">
+              If unauthorized login attempts or device breaches occur on your account, the real user is immediately notified via <strong>Email AND WhatsApp</strong>. As your Provider (`Manoj-548`), you can instantly escalate breach evidence directly to Cyber Crime Authorities (NC3 / IC3 / Interpol).
             </div>
 
-            <div class="email-simulation" style="background: rgba(244, 63, 94, 0.08); border-color: rgba(244, 63, 94, 0.3);">
-              <div class="email-meta" style="color: var(--accent-rose);">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Real-Time Breach Protection & Provider Cyber Crime Escalation</strong>
-              </div>
-              <div style="font-size: 13px; color: var(--text-main); margin-bottom: 14px;">
-                If unauthorized login attempts or device breaches occur on your account, the real user is immediately notified via <strong>Email AND WhatsApp</strong>. As your Provider (`Manoj-548`), you can instantly escalate breach evidence directly to Cyber Crime Authorities (NC3 / IC3 / Interpol).
-              </div>
-
-              <!-- Interactive Breach Simulator -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
-                <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-                  <div style="font-size: 12px; font-weight: 700; color: var(--accent-rose); margin-bottom: 4px;">
-                    <i class="bi bi-broadcast me-1"></i> Unusual Device Login Breach Simulator
-                  </div>
-                  <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
-                    Simulate an attacker trying to sign in from an unauthorized IP (192.168.1.99).
-                  </div>
-                  <button class="btn btn-secondary" style="width: 100%; font-size: 12px; color: var(--accent-rose);" onclick="simulateUnusualDeviceBreach()">
-                    <i class="bi bi-bug-fill me-1"></i> Trigger Device Breach Alert & Account Lockdown
-                  </button>
+            <!-- Interactive Breach Simulator -->
+            <div class="dashboard-two-col">
+              <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div style="font-size: 12px; font-weight: 700; color: var(--accent-rose); margin-bottom: 4px;">
+                  <i class="bi bi-broadcast me-1"></i> Unusual Device Login Breach Simulator
                 </div>
-
-                <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-                  <div style="font-size: 12px; font-weight: 700; color: var(--primary-cyan); margin-bottom: 4px;">
-                    <i class="bi bi-file-earmark-medical-fill me-1"></i> Official Cyber Crime Report Generator
-                  </div>
-                  <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
-                    Generate cryptographic SHA-256 evidence payload for law enforcement.
-                  </div>
-                  <button class="btn btn-primary" style="width: 100%; font-size: 12px;" onclick="generateCyberCrimeReport()">
-                    <i class="bi bi-shield-lock me-1"></i> Generate & Escalate Cyber Crime Dossier
-                  </button>
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+                  Simulate an attacker trying to sign in from an unauthorized IP (192.168.1.99).
                 </div>
+                <button class="btn btn-secondary" style="width: 100%; font-size: 12px; color: var(--accent-rose);" onclick="simulateUnusualDeviceBreach()">
+                  <i class="bi bi-bug-fill me-1"></i> Trigger Device Breach Alert & Account Lockdown
+                </button>
               </div>
 
-              <!-- Cyber Crime Report Display Box -->
-              <div id="cyberCrimeDossierBox" class="reveal-box" style="display:none; text-align: left; background: rgba(15, 23, 42, 0.95); border-color: var(--accent-rose);">
-                <div style="font-size: 13px; font-weight: 800; color: var(--accent-rose); margin-bottom: 8px;">
-                  <i class="bi bi-file-earmark-lock2-fill me-1"></i> OFFICIAL CYBER CRIME ESCALATION DOSSIER
+              <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div style="font-size: 12px; font-weight: 700; color: var(--primary-cyan); margin-bottom: 4px;">
+                  <i class="bi bi-file-earmark-medical-fill me-1"></i> Official Cyber Crime Report Generator
                 </div>
-                <pre id="cyberCrimeReportContent" style="font-family: var(--font-mono); font-size: 12px; color: #fff; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap;"></pre>
-                
-                <div style="display: flex; gap: 10px; margin-top: 12px;">
-                  <button class="btn btn-primary" style="flex: 1; background: var(--accent-rose);" onclick="submitEscalationToCyberCrime()">
-                    <i class="bi bi-send-fill me-1"></i> Submit Escalation to Cyber Crime Authority & Provider Desk
-                  </button>
-                  <button class="btn btn-secondary" style="font-size: 12px;" onclick="copyTextById('cyberCrimeReportContent')">
-                    <i class="bi bi-clipboard me-1"></i> Copy Evidence
-                  </button>
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+                  Generate cryptographic SHA-256 evidence payload for law enforcement.
                 </div>
+                <button class="btn btn-primary" style="width: 100%; font-size: 12px;" onclick="generateCyberCrimeReport()">
+                  <i class="bi bi-shield-lock me-1"></i> Generate & Escalate Cyber Crime Dossier
+                </button>
+              </div>
+            </div>
+
+            <!-- Cyber Crime Report Display Box -->
+            <div id="cyberCrimeDossierBox" class="reveal-box" style="display:none; text-align: left; background: rgba(15, 23, 42, 0.95); border-color: var(--accent-rose);">
+              <div style="font-size: 13px; font-weight: 800; color: var(--accent-rose); margin-bottom: 8px;">
+                <i class="bi bi-file-earmark-lock2-fill me-1"></i> OFFICIAL CYBER CRIME ESCALATION DOSSIER
+              </div>
+              <pre id="cyberCrimeReportContent" style="font-family: var(--font-mono); font-size: 12px; color: #fff; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap;"></pre>
+              
+              <div class="card-actions" style="margin-top: 12px;">
+                <button class="btn btn-primary" style="flex: 1; background: var(--accent-rose);" onclick="submitEscalationToCyberCrime()">
+                  <i class="bi bi-send-fill me-1"></i> Submit Escalation to Cyber Crime Authority & Provider Desk
+                </button>
+                <button class="btn btn-secondary" style="font-size: 12px;" onclick="copyTextById('cyberCrimeReportContent')">
+                  <i class="bi bi-clipboard me-1"></i> Copy Evidence
+                </button>
               </div>
             </div>
           </div>
-
         </div>
+
       </div>
 
       <!-- PROVIDER CONTACT DESK FOR SUBSCRIBED USERS VIEW -->
       <div id="viewSupport" class="view-panel" style="display:none;">
-        <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="dashboard-two-col">
           
-          <div class="card gen-card">
+          <div class="card">
             <div class="card-title">
               <span><i class="bi bi-headset text-cyan me-2"></i> Subscribed User Provider Desk</span>
               <span class="badge badge-active"><i class="bi bi-star-fill text-amber"></i> $5/mo VIP Access</span>
@@ -747,7 +757,7 @@
           </div>
 
           <!-- Schedule Consultation Form Card -->
-          <div class="card gen-card">
+          <div class="card">
             <div class="card-title">
               <span><i class="bi bi-calendar-event-fill text-amber me-2"></i> Schedule 1-on-1 Talks with Provider</span>
               <span class="badge badge-active">Consultation Desk</span>
@@ -781,7 +791,7 @@
             </form>
           </div>
 
-          <div class="card gen-card">
+          <div class="card">
             <div class="card-title">
               <span><i class="bi bi-pencil-square text-cyan me-2"></i> PR Request Acceptor</span>
               <span class="badge badge-active"><i class="bi bi-cursor-fill"></i> Canvas Panel</span>
