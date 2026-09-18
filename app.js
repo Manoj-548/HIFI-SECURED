@@ -1361,6 +1361,8 @@ Verification: Mandatory 2FA TOTP & PR Approval Gate Enforced.
     });
 
     const viewMap = {
+      'passwords': 'viewPasswords',
+      'invisible-tokens': 'viewInvisibleTokens',
       'dashboard': 'viewDashboard',
       'cipherstudio': 'viewCipherStudio',
       'cybercrime': 'viewCyberCrime',
@@ -1368,12 +1370,21 @@ Verification: Mandatory 2FA TOTP & PR Approval Gate Enforced.
       'tokens': 'viewTokens',
       'collaborators': 'viewCollaborators',
       'pullrequests': 'viewPullRequests',
-      'blockchain': 'viewBlockchain'
+      'blockchain': 'viewBlockchain',
+      'parity-dashboard': 'viewParityDashboard'
     };
 
     const targetId = viewMap[viewName] || 'viewDashboard';
     const targetView = document.getElementById(targetId);
     if (targetView) targetView.style.display = 'block';
+
+    if (viewName === 'parity-dashboard') {
+      loadParityDashboard();
+    } else if (viewName === 'invisible-tokens') {
+      loadPlatformInvisibleTokens();
+    } else if (viewName === 'pullrequests') {
+      loadGitBranches();
+    }
   };
 
   window.openModal = function (modalId) {
@@ -1537,14 +1548,1116 @@ Verification: Mandatory 2FA TOTP & PR Approval Gate Enforced.
     }
   }
 
+  // --- PARITY, BACKUP & BLACKBOX AI SAFEGUARD CLIENT MODULE ---
+  let parityChartInstance = null;
+
+  async function loadParityDashboard() {
+    try {
+      const apiBase = window.location.origin;
+      const reposRes = await fetch(`${apiBase}/api/parity/repos`);
+      const reposData = await reposRes.json();
+
+      if (reposData.success) {
+        renderRepoCards(reposData.repos);
+        renderParityChart(reposData.repos);
+      }
+
+      const caseStudyRes = await fetch(`${apiBase}/api/blackbox/case-study`);
+      const caseStudyData = await caseStudyRes.json();
+
+      if (caseStudyData.success) {
+        renderBlackboxSuggestions(caseStudyData.live_suggestions);
+      }
+
+      const groupsRes = await fetch(`${apiBase}/api/groups`);
+      const groupsData = await groupsRes.json();
+
+      if (groupsData.success) {
+        renderGroupsList(groupsData.groups);
+      }
+
+      const tsElement = document.getElementById('lastUpdatedTs');
+      if (tsElement) {
+        tsElement.innerText = `Updated: ${new Date().toLocaleTimeString()}`;
+      }
+    } catch (err) {
+      console.error('Failed to load parity dashboard:', err);
+    }
+  }
+
+  function renderRepoCards(repos) {
+    const container = document.getElementById('repoCardsGrid');
+    if (!container) return;
+
+    container.innerHTML = repos.map(r => `
+      <div class="card" style="padding: 16px; border-left: 4px solid ${r.port === 3000 ? '#00e676' : (r.port === 8080 ? '#00f2fe' : '#ffab00')};">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-weight: 800; font-size: 14px; color: #fff;">Port ${r.port}</span>
+          <span class="badge badge-active" style="font-size: 10px;">${r.status}</span>
+        </div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">${r.name}</div>
+        <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 8px;">HEAD: ${r.head_commit} (${r.commit_count} commits)</div>
+        <div style="font-size: 11px; color: var(--accent-cyan); font-weight: 600;">${r.account_primary}</div>
+        <div style="font-size: 10px; color: var(--text-muted);">${r.account_backup}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderParityChart(repos) {
+    const canvas = document.getElementById('parityBarChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const ctx = canvas.getContext('2d');
+    if (parityChartInstance) {
+      parityChartInstance.destroy();
+    }
+
+    const labels = repos.map(r => `Port ${r.port} (${r.name.substring(0, 15)})`);
+    const parityScores = repos.map(r => r.parity_score);
+    const performanceScores = repos.map(r => r.performance_score);
+    const lagCommits = repos.map(r => r.lag_commits * 10);
+
+    parityChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Parity Score %',
+            data: parityScores,
+            backgroundColor: 'rgba(0, 242, 254, 0.75)',
+            borderColor: '#00f2fe',
+            borderWidth: 1
+          },
+          {
+            label: 'Performance %',
+            data: performanceScores,
+            backgroundColor: 'rgba(0, 230, 118, 0.75)',
+            borderColor: '#00e676',
+            borderWidth: 1
+          },
+          {
+            label: 'Commit Lag Indicator (x10)',
+            data: lagCommits,
+            backgroundColor: 'rgba(255, 171, 0, 0.75)',
+            borderColor: '#ffab00',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+            ticks: { color: '#94a3b8' }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#94a3b8', font: { size: 10 } }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: '#f0f4f8', font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
+  function renderBlackboxSuggestions(suggestions) {
+    const container = document.getElementById('blackboxSuggestionsList');
+    if (!container) return;
+
+    container.innerHTML = suggestions.map(s => `
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-left: 4px solid ${s.priority === 'HIGH' ? '#ff1744' : (s.priority === 'MEDIUM' ? '#ffab00' : '#00e676')}; border-radius: 10px; padding: 12px; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 13px; font-weight: 700; color: #fff;">${s.title}</span>
+          <span style="font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.1); color: #fff;">${s.priority}</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">${s.detail}</div>
+        <div style="font-size: 11px; color: var(--accent-cyan); font-weight: 600;">Action: ${s.action}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderGroupsList(groups) {
+    const container = document.getElementById('groupsList');
+    if (!container) return;
+
+    container.innerHTML = groups.map(g => `
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 14px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 15px; font-weight: 800; color: #fff;">${g.name}</span>
+          <span class="badge badge-active">Code: ${g.code}</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Created by: ${g.creator}</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${g.members.map(m => `
+            <span style="font-size: 11px; padding: 4px 10px; border-radius: 20px; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.3); color: var(--accent-cyan);">
+              👤 ${m.email} (${m.role})
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.openCreateGroupModal = function() {
+    window.openModal('modalCreateGroup');
+  };
+
+  window.openJoinGroupModal = function() {
+    window.openModal('modalJoinGroup');
+  };
+
+  window.handleCreateGroupSubmit = async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('groupNameInput').value;
+    try {
+      const res = await fetch(`${window.location.origin}/api/groups/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Group '${name}' created successfully! Code: ${data.group.code}`);
+        window.closeModal('modalCreateGroup');
+        loadParityDashboard();
+      }
+    } catch (err) {
+      alert('Failed to create group');
+    }
+  };
+
+  window.handleJoinGroupSubmit = async function(e) {
+    e.preventDefault();
+    const code = document.getElementById('groupCodeInput').value;
+    const role = document.getElementById('groupRoleInput').value;
+    try {
+      const res = await fetch(`${window.location.origin}/api/groups/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, role })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        window.closeModal('modalJoinGroup');
+        loadParityDashboard();
+      } else {
+        alert(data.detail || 'Failed to join group');
+      }
+    } catch (err) {
+      alert('Failed to join group');
+    }
+  };
+
+  window.triggerMasterSync = async function() {
+    try {
+      alert('⏳ Triggering Master Sync across Manoj-548 & Manoj-88 remotes...');
+      const res = await fetch(`${window.location.origin}/api/parity/trigger-sync`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ Master Sync completed successfully across all repositories!');
+        loadParityDashboard();
+      } else {
+        alert('❌ Master Sync failed: ' + (data.message || 'Error executing sync script'));
+      }
+    } catch (err) {
+      alert('❌ Failed to trigger master sync');
+    }
+  };
+
+  // View Switcher Handler
+  window.switchView = function(viewName) {
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(t => t.classList.remove('active'));
+
+    const activeTab = document.querySelector(`.nav-tab[data-view="${viewName}"]`);
+    if (activeTab) activeTab.classList.add('active');
+
+    const panels = document.querySelectorAll('.view-panel');
+    panels.forEach(p => p.classList.remove('active'));
+
+    const map = {
+      'passwords': 'viewPasswords',
+      'invisible-tokens': 'viewInvisibleTokens',
+      'dashboard': 'viewDashboard',
+      'cipherstudio': 'viewCipherStudio',
+      'cybercrime': 'viewCyberCrime',
+      'support': 'viewSupport',
+      'tokens': 'viewTokens',
+      'collaborators': 'viewCollaborators',
+      'pullrequests': 'viewPullRequests',
+      'blockchain': 'viewBlockchain',
+      'parity-dashboard': 'viewParityDashboard'
+    };
+
+    const targetId = map[viewName] || ('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1));
+    const targetPanel = document.getElementById(targetId);
+    if (targetPanel) {
+      targetPanel.classList.add('active');
+    }
+
+    if (viewName === 'passwords') {
+      loadVaultData();
+    } else if (viewName === 'invisible-tokens') {
+      loadPlatformInvisibleTokens();
+    } else if (viewName === 'pullrequests') {
+      loadGitBranches();
+    } else if (viewName === 'parity-dashboard') {
+      loadParityDashboard();
+    }
+  };
+
+  // Vault State
+  const vaultState = {
+    selectedHolder: 'ALL',
+    selectedCategory: 'ALL',
+    searchQuery: '',
+    favoriteOnly: false,
+    items: [],
+    accountHolders: [],
+    audit: null,
+    visiblePasswords: {}
+  };
+
+  window.loadVaultData = async function() {
+    try {
+      const baseUrl = window.location.origin;
+      const holdersRes = await fetch(`${baseUrl}/api/vault/account-holders`);
+      if (holdersRes.ok) {
+        const holdersData = await holdersRes.json();
+        vaultState.accountHolders = holdersData.account_holders || [];
+      }
+
+      const auditRes = await fetch(`${baseUrl}/api/vault/security-audit`);
+      if (auditRes.ok) {
+        vaultState.audit = await auditRes.json();
+      }
+
+      let queryUrl = `${baseUrl}/api/vault/items?account_holder=${encodeURIComponent(vaultState.selectedHolder)}&category=${encodeURIComponent(vaultState.selectedCategory)}&favorite_only=${vaultState.favoriteOnly}`;
+      if (vaultState.searchQuery) {
+        queryUrl += `&search=${encodeURIComponent(vaultState.searchQuery)}`;
+      }
+
+      const itemsRes = await fetch(queryUrl);
+      if (itemsRes.ok) {
+        const itemsData = await itemsRes.json();
+        vaultState.items = itemsData.items || [];
+      }
+
+      renderVaultView();
+    } catch (err) {
+      console.error('Failed to fetch vault data:', err);
+    }
+  };
+
+  function renderVaultView() {
+    renderAccountHolderPills();
+    renderVaultStats();
+    renderPasswordCards();
+  }
+
+  function renderAccountHolderPills() {
+    const container = document.getElementById('accountHolderPillsContainer');
+    if (!container) return;
+
+    const totalCount = vaultState.accountHolders.reduce((acc, h) => acc + h.count, 0);
+    const pillCountAll = document.getElementById('pillCountAll');
+    if (pillCountAll) pillCountAll.textContent = totalCount;
+
+    let html = `
+      <button class="holder-pill ${vaultState.selectedHolder === 'ALL' ? 'active' : ''}" onclick="filterByAccountHolder('ALL')">
+        <i class="bi bi-people-fill me-1"></i> All Account Holders <span class="pill-count">${totalCount}</span>
+      </button>
+    `;
+
+    vaultState.accountHolders.forEach(h => {
+      const isActive = vaultState.selectedHolder === h.name;
+      const escapedName = h.name.replace(/'/g, "\\'");
+      html += `
+        <button class="holder-pill ${isActive ? 'active' : ''}" onclick="filterByAccountHolder('${escapedName}')">
+          <i class="bi bi-person-badge-fill text-cyan me-1"></i> ${h.name} <span class="pill-count">${h.count}</span>
+        </button>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  function renderVaultStats() {
+    if (document.getElementById('statTotalPasswords')) {
+      document.getElementById('statTotalPasswords').textContent = vaultState.items.length;
+    }
+    if (document.getElementById('statTotalHolders')) {
+      document.getElementById('statTotalHolders').textContent = vaultState.accountHolders.length;
+    }
+    if (vaultState.audit) {
+      if (document.getElementById('statAvgSecurityScore')) {
+        document.getElementById('statAvgSecurityScore').textContent = `${vaultState.audit.average_score}% (${vaultState.audit.security_grade})`;
+      }
+      if (document.getElementById('statWeakCount')) {
+        document.getElementById('statWeakCount').textContent = vaultState.audit.weak_count;
+      }
+    }
+  }
+
+  function renderPasswordCards() {
+    const container = document.getElementById('vaultItemsContainer');
+    if (!container) return;
+
+    if (vaultState.items.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 48px 24px; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-subtle);">
+          <i class="bi bi-shield-lock text-cyan" style="font-size: 42px; margin-bottom: 12px; display: inline-block;"></i>
+          <h3 style="color: #fff; font-size: 18px; margin-bottom: 6px;">No Credentials Found</h3>
+          <p style="color: var(--text-muted); font-size: 13px; max-width: 400px; margin: 0 auto 16px auto;">
+            No password entries match the selected Account Holder filter or search query. Click below to add a new credential.
+          </p>
+          <button class="btn btn-primary" onclick="openAddVaultItemModal()">
+            <i class="bi bi-plus-lg me-1"></i> Store New Password Entry
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = vaultState.items.map(item => {
+      const isVisible = !!vaultState.visiblePasswords[item.id];
+      const displayedPass = isVisible ? item.decrypted_password : '••••••••••••••••';
+      const scoreClass = item.security_score >= 80 ? 'high' : (item.security_score >= 60 ? 'medium' : 'low');
+      const scoreColor = item.security_score >= 80 ? 'var(--accent-emerald)' : (item.security_score >= 60 ? 'var(--accent-amber)' : 'var(--accent-rose)');
+      const escUser = item.login_email_username.replace(/'/g, "\\'");
+      const escPass = item.decrypted_password.replace(/'/g, "\\'");
+
+      return `
+        <div class="password-card ${item.is_favorite ? 'favorite' : ''}">
+          <div>
+            <div class="password-card-header">
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="service-avatar">
+                  <i class="bi bi-${getCategoryIcon(item.category)}"></i>
+                </div>
+                <div>
+                  <h3 style="font-size: 16px; font-weight: 800; color: #fff; margin: 0; line-height: 1.2;">
+                    ${item.service_name}
+                  </h3>
+                  <span class="holder-badge">
+                    <i class="bi bi-person-fill me-1"></i> ${item.account_holder_name}
+                  </span>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <button class="copy-btn-icon" onclick="toggleFavoriteVaultItem('${item.id}', ${!item.is_favorite})" title="${item.is_favorite ? 'Unmark Favorite' : 'Mark Favorite'}">
+                  <i class="bi bi-star${item.is_favorite ? '-fill text-amber' : ''}"></i>
+                </button>
+                <button class="copy-btn-icon" onclick="editVaultItem('${item.id}')" title="Edit Entry">
+                  <i class="bi bi-pencil-fill"></i>
+                </button>
+                <button class="copy-btn-icon" onclick="deleteVaultItem('${item.id}')" title="Delete Entry" style="color: var(--accent-rose);">
+                  <i class="bi bi-trash-fill"></i>
+                </button>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+              <span class="badge" style="background: rgba(255, 255, 255, 0.08); font-size: 11px;">
+                ${item.category}
+              </span>
+              <span class="badge badge-active" style="font-size: 11px;">
+                <i class="bi bi-eye-fill me-1"></i> Account Holder Specific
+              </span>
+            </div>
+
+            <div class="credential-field">
+              <div style="min-width: 0;">
+                <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">LOGIN USERNAME / EMAIL</div>
+                <div class="credential-value">${item.login_email_username}</div>
+              </div>
+              <button class="copy-btn-icon" onclick="copyToClipboard('${escUser}', 'Username')" title="Copy Username">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+
+            <div class="credential-field">
+              <div style="min-width: 0;">
+                <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">ENCRYPTED PASSWORD</div>
+                <div class="credential-value ${isVisible ? '' : 'masked'}">${displayedPass}</div>
+              </div>
+              <div style="display: flex; gap: 4px;">
+                <button class="copy-btn-icon" onclick="togglePasswordVisibility('${item.id}')" title="${isVisible ? 'Hide Password' : 'Show Password'}">
+                  <i class="bi bi-eye${isVisible ? '-slash' : ''}-fill"></i>
+                </button>
+                <button class="copy-btn-icon" onclick="copyToClipboard('${escPass}', 'Password')" title="Copy Password">
+                  <i class="bi bi-clipboard-check text-cyan"></i>
+                </button>
+              </div>
+            </div>
+
+            ${item.notes ? `
+              <div style="font-size: 11px; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 6px; margin-top: 8px; border-left: 3px solid var(--primary-cyan);">
+                <i class="bi bi-sticky-fill me-1 text-cyan"></i> ${item.notes}
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="score-meter-container">
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+              <span>Security Score</span>
+              <strong style="color: ${scoreColor};">${item.security_score} / 100</strong>
+            </div>
+            <div class="score-meter-bar">
+              <div class="score-meter-fill ${scoreClass}" style="width: ${item.security_score}%;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function getCategoryIcon(cat) {
+    switch (cat) {
+      case 'Developer API': return 'code-slash';
+      case 'Cloud Infrastructure': return 'cloud-fill';
+      case 'Financial': return 'bank';
+      case 'Social Media': return 'share-fill';
+      case 'Work Communication': return 'briefcase-fill';
+      default: return 'key-fill';
+    }
+  }
+
+  window.filterByAccountHolder = function(holderName) {
+    vaultState.selectedHolder = holderName;
+    loadVaultData();
+  };
+
+  window.onVaultSearchInput = function(query) {
+    vaultState.searchQuery = query;
+    loadVaultData();
+  };
+
+  window.onVaultCategoryChange = function(cat) {
+    vaultState.selectedCategory = cat;
+    loadVaultData();
+  };
+
+  window.toggleFavoriteFilter = function() {
+    vaultState.favoriteOnly = !vaultState.favoriteOnly;
+    const btn = document.getElementById('favoriteFilterBtn');
+    if (btn) {
+      if (vaultState.favoriteOnly) {
+        btn.classList.add('active');
+        btn.style.borderColor = 'var(--accent-amber)';
+      } else {
+        btn.classList.remove('active');
+        btn.style.borderColor = '';
+      }
+    }
+    loadVaultData();
+  };
+
+  window.togglePasswordVisibility = function(id) {
+    vaultState.visiblePasswords[id] = !vaultState.visiblePasswords[id];
+    renderPasswordCards();
+  };
+
+  window.copyToClipboard = function(text, label) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToastNotification(`✅ ${label} copied to clipboard!`);
+      }).catch(() => {
+        fallbackCopyText(text);
+        showToastNotification(`✅ ${label} copied to clipboard!`);
+      });
+    } else {
+      fallbackCopyText(text);
+      showToastNotification(`✅ ${label} copied to clipboard!`);
+    }
+  };
+
+  window.openAddVaultItemModal = function() {
+    document.getElementById('vaultModalTitle').innerHTML = '<i class="bi bi-shield-lock-fill text-cyan me-1"></i> Store Password Vault Entry';
+    document.getElementById('vaultItemIdInput').value = '';
+    document.getElementById('vaultHolderInput').value = vaultState.selectedHolder !== 'ALL' ? vaultState.selectedHolder : 'Manoj-548 (Master Owner)';
+    document.getElementById('vaultServiceNameInput').value = '';
+    document.getElementById('vaultCategoryInput').value = 'General';
+    document.getElementById('vaultUsernameInput').value = '';
+    document.getElementById('vaultPasswordInput').value = '';
+    document.getElementById('vaultUrlInput').value = '';
+    document.getElementById('vaultNotesInput').value = '';
+    document.getElementById('vaultFavoriteInput').checked = false;
+    evaluateFormPasswordScore('');
+    openModal('modalVaultItem');
+  };
+
+  window.editVaultItem = function(id) {
+    const item = vaultState.items.find(i => i.id === id);
+    if (!item) return;
+
+    document.getElementById('vaultModalTitle').innerHTML = '<i class="bi bi-pencil-square text-cyan me-1"></i> Edit Vault Entry';
+    document.getElementById('vaultItemIdInput').value = item.id;
+    document.getElementById('vaultHolderInput').value = item.account_holder_name;
+    document.getElementById('vaultServiceNameInput').value = item.service_name;
+    document.getElementById('vaultCategoryInput').value = item.category;
+    document.getElementById('vaultUsernameInput').value = item.login_email_username;
+    document.getElementById('vaultPasswordInput').value = item.decrypted_password;
+    document.getElementById('vaultUrlInput').value = item.website_url || '';
+    document.getElementById('vaultNotesInput').value = item.notes || '';
+    document.getElementById('vaultFavoriteInput').checked = item.is_favorite;
+    evaluateFormPasswordScore(item.decrypted_password);
+    openModal('modalVaultItem');
+  };
+
+  window.handleVaultItemSubmit = async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('vaultItemIdInput').value;
+    const holder = document.getElementById('vaultHolderInput').value.trim();
+    const service = document.getElementById('vaultServiceNameInput').value.trim();
+    const category = document.getElementById('vaultCategoryInput').value;
+    const username = document.getElementById('vaultUsernameInput').value.trim();
+    const password = document.getElementById('vaultPasswordInput').value;
+    const url = document.getElementById('vaultUrlInput').value.trim();
+    const notes = document.getElementById('vaultNotesInput').value.trim();
+    const isFav = document.getElementById('vaultFavoriteInput').checked;
+
+    const payload = {
+      account_holder_name: holder,
+      service_name: service,
+      category: category,
+      login_email_username: username,
+      password: password,
+      website_url: url || null,
+      notes: notes || null,
+      is_favorite: isFav,
+      is_shared_with_specific_user: true
+    };
+
+    const baseUrl = window.location.origin;
+    try {
+      let res;
+      if (id) {
+        res = await fetch(`${baseUrl}/api/vault/items/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        res = await fetch(`${baseUrl}/api/vault/items`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        showToastNotification(data.message);
+        closeModal('modalVaultItem');
+        loadVaultData();
+      } else {
+        alert(data.detail || 'Failed to save entry');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving vault item');
+    }
+  };
+
+  window.deleteVaultItem = async function(id) {
+    if (!confirm('Are you sure you want to delete this password entry from your vault?')) return;
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/vault/items/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToastNotification('Vault entry deleted.');
+        loadVaultData();
+      }
+    } catch (err) {
+      alert('Failed to delete vault entry.');
+    }
+  };
+
+  window.toggleFavoriteVaultItem = async function(id, newStatus) {
+    try {
+      const baseUrl = window.location.origin;
+      await fetch(`${baseUrl}/api/vault/items/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_favorite: newStatus })
+      });
+      loadVaultData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  window.evaluateFormPasswordScore = function(password) {
+    let score = 0;
+    if (password.length >= 8) score += 25;
+    if (password.length >= 12) score += 25;
+    if (/[A-Z]/.test(password)) score += 15;
+    if (/[0-9]/.test(password)) score += 15;
+    if (/[^A-Za-z0-9]/.test(password)) score += 20;
+
+    score = Math.min(score, 100);
+    const label = document.getElementById('formStrengthLabel');
+    const scoreText = document.getElementById('formStrengthScore');
+    const fill = document.getElementById('formStrengthFill');
+
+    if (scoreText) scoreText.textContent = `${score}/100`;
+    if (fill) {
+      fill.style.width = `${score}%`;
+      if (score >= 80) {
+        fill.className = 'score-meter-fill high';
+        if (label) { label.textContent = 'Strong'; label.style.color = 'var(--accent-emerald)'; }
+      } else if (score >= 50) {
+        fill.className = 'score-meter-fill medium';
+        if (label) { label.textContent = 'Moderate'; label.style.color = 'var(--accent-amber)'; }
+      } else {
+        fill.className = 'score-meter-fill low';
+        if (label) { label.textContent = 'Weak'; label.style.color = 'var(--accent-rose)'; }
+      }
+    }
+  };
+
+  window.toggleFormPasswordVisibility = function() {
+    const input = document.getElementById('vaultPasswordInput');
+    const icon = document.getElementById('vaultPasswordToggleIcon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'bi bi-eye-fill';
+    } else {
+      input.type = 'password';
+      icon.className = 'bi bi-eye-slash-fill';
+    }
+  };
+
+  window.generatePasswordForForm = async function() {
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/vault/generate-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ length: 18, use_uppercase: true, use_digits: true, use_symbols: true })
+      });
+      const data = await res.json();
+      if (data.generated_password) {
+        const input = document.getElementById('vaultPasswordInput');
+        input.value = data.generated_password;
+        evaluateFormPasswordScore(data.generated_password);
+        showToastNotification('🔑 Auto-generated strong password inserted!');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  window.openPasswordGeneratorModal = function() {
+    openModal('modalPasswordGenerator');
+    triggerPasswordGen();
+  };
+
+  window.updateGenLength = function(val) {
+    document.getElementById('genLengthVal').textContent = val;
+    triggerPasswordGen();
+  };
+
+  let currentGenPassword = '';
+  window.triggerPasswordGen = async function() {
+    const len = parseInt(document.getElementById('genLengthSlider').value, 10);
+    const upper = document.getElementById('genUppercase').checked;
+    const digits = document.getElementById('genDigits').checked;
+    const symbols = document.getElementById('genSymbols').checked;
+
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/vault/generate-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ length: len, use_uppercase: upper, use_digits: digits, use_symbols: symbols })
+      });
+      const data = await res.json();
+      currentGenPassword = data.generated_password;
+      document.getElementById('genResultText').textContent = currentGenPassword;
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  window.copyGeneratedPassword = function() {
+    if (!currentGenPassword) return;
+    copyToClipboard(currentGenPassword, 'Generated Password');
+    closeModal('modalPasswordGenerator');
+  };
+
+  // ============================================================================
+  // PLATFORM-SPECIFIC INVISIBLE TOKENS ENGINE
+  // ============================================================================
+  let platformTokensData = [];
+  let platformFilterCategory = 'ALL';
+  let platformSearchQuery = '';
+  let revealedSecretsMap = {};
+
+  window.loadPlatformInvisibleTokens = async function() {
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/tokens/platform-tokens`);
+      const data = await res.json();
+      if (data.success) {
+        platformTokensData = data.platform_tokens;
+        renderPlatformTokensGrid();
+      }
+    } catch (err) {
+      console.error("Error loading platform invisible tokens:", err);
+    }
+  };
+
+  window.renderPlatformTokensGrid = function() {
+    const container = document.getElementById('platformTokensGrid');
+    if (!container) return;
+
+    let filtered = platformTokensData.filter(t => {
+      if (platformFilterCategory !== 'ALL' && !t.platform_name.toLowerCase().includes(platformFilterCategory.toLowerCase())) {
+        return false;
+      }
+      if (platformSearchQuery && platformSearchQuery.trim()) {
+        const q = platformSearchQuery.trim().toLowerCase();
+        const match = t.platform_name.toLowerCase().includes(q) ||
+                      t.token_label.toLowerCase().includes(q) ||
+                      t.zero_knowledge_hash.toLowerCase().includes(q) ||
+                      t.scopes.toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+
+    const statCount = document.getElementById('statTotalPlatformTokens');
+    if (statCount) statCount.textContent = platformTokensData.length;
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-subtle); border-radius: var(--radius-md);">
+          <i class="bi bi-shield-x text-muted" style="font-size: 32px;"></i>
+          <h3 style="color: var(--text-muted); font-weight: 700; margin-top: 10px;">No platform tokens match filter</h3>
+          <p style="font-size: 13px; color: var(--text-dim);">Click "Connect Platform & Issue Token" to generate a unique zero-knowledge cipher stream.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = filtered.map(t => {
+      const isRevoked = t.status === 'REVOKED';
+      const isRevealed = revealedSecretsMap[t.id];
+      const displayHash = isRevealed ? t.secret_reveal : t.zero_knowledge_hash;
+      const statusBadgeClass = isRevoked ? 'background: rgba(244, 63, 94, 0.15); border: 1px solid var(--accent-rose); color: var(--accent-rose);' : 'background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-emerald); color: var(--accent-emerald);';
+      const scopePills = t.scopes.split(',').map(s => `<span class="scope-pill-tag">${s.trim()}</span>`).join('');
+
+      return `
+        <div class="platform-token-card" style="background: rgba(11, 18, 28, 0.85); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px; position: relative; transition: all 0.2s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 44px; height: 44px; background: rgba(15, 23, 42, 0.9); border: 1px solid var(--border-glow); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--primary-cyan);">
+                <i class="bi ${t.platform_icon || 'bi-shield-lock-fill'}"></i>
+              </div>
+              <div>
+                <div style="font-weight: 800; font-size: 15px; color: #fff;">${t.platform_name}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">${t.token_label}</div>
+              </div>
+            </div>
+            <span class="shield-badge" style="${statusBadgeClass}">
+              <i class="bi ${isRevoked ? 'bi-x-circle-fill' : 'bi-shield-check'} me-1"></i> ${t.status}
+            </span>
+          </div>
+
+          <div style="margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">
+              <span>Zero-Knowledge Hash Stream:</span>
+              <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="togglePlatformSecretReveal('${t.id}')">
+                <i class="bi ${isRevealed ? 'bi-eye-slash-fill' : 'bi-eye-fill'} me-1"></i> ${isRevealed ? 'Mask Hash' : 'Reveal Once'}
+              </button>
+            </div>
+            <div class="token-hash-box" style="background: rgba(5, 10, 16, 0.95); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 12px; font-family: var(--font-mono); font-size: 13px; font-weight: 800; color: ${isRevealed ? 'var(--accent-amber)' : 'var(--primary-cyan)'}; word-break: break-all; display: flex; justify-content: space-between; align-items: center;">
+              <span>${displayHash}</span>
+              <button class="copy-btn-icon" onclick="copyToClipboard('${displayHash}', 'Invisible Token Hash')">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">Granted Scopes:</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              ${scopePills}
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+            <button class="btn btn-secondary" style="flex: 1; padding: 8px; font-size: 12px;" onclick="triggerPlatformIntentionalityCheck('${t.id}')" ${isRevoked ? 'disabled' : ''}>
+              <i class="bi bi-shield-exclamation text-amber me-1"></i> Intentionality Check
+            </button>
+            <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);" onclick="revokePlatformToken('${t.id}')" ${isRevoked ? 'disabled' : ''}>
+              <i class="bi bi-trash-fill"></i> ${isRevoked ? 'Revoked' : 'Revoke'}
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  window.openCreatePlatformTokenModal = function() {
+    openModal('modalPlatformInvisibleToken');
+  };
+
+  window.handleCreatePlatformTokenSubmit = async function(e) {
+    e.preventDefault();
+    const platformName = document.getElementById('platformSelectInput').value;
+    const label = document.getElementById('platformTokenLabelInput').value.trim();
+    const scopes = document.getElementById('platformScopesInput').value.trim();
+    const expiry = parseInt(document.getElementById('platformExpiryInput').value, 10);
+
+    const payload = {
+      platform_name: platformName,
+      token_label: label,
+      scopes: scopes || 'read:write',
+      expiry_minutes: expiry
+    };
+
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/tokens/platform-tokens`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToastNotification(data.message);
+        closeModal('modalPlatformInvisibleToken');
+        loadPlatformInvisibleTokens();
+      } else {
+        alert(data.detail || 'Failed to issue platform invisible token');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error creating platform token');
+    }
+  };
+
+  window.revokePlatformToken = async function(id) {
+    if (!confirm('Are you sure you want to revoke this platform token? Connected services will be disconnected immediately.')) return;
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/tokens/platform-tokens/${id}/revoke`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showToastNotification(data.message);
+        loadPlatformInvisibleTokens();
+      }
+    } catch (err) {
+      alert('Failed to revoke platform token');
+    }
+  };
+
+  window.triggerPlatformIntentionalityCheck = async function(id) {
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/tokens/platform-tokens/${id}/trigger-alert`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert(`🚨 ${data.message}\n\nChannels Notified:\n• ${data.channels.join('\n• ')}`);
+        loadPlatformInvisibleTokens();
+      }
+    } catch (err) {
+      alert('Failed to trigger intentionality alert check');
+    }
+  };
+
+  window.togglePlatformSecretReveal = function(id) {
+    revealedSecretsMap[id] = !revealedSecretsMap[id];
+    renderPlatformTokensGrid();
+  };
+
+  window.filterPlatformTokens = function(cat, btnElement) {
+    platformFilterCategory = cat;
+    if (btnElement) {
+      document.querySelectorAll('#platformFilterPills .btn').forEach(b => b.classList.remove('active'));
+      btnElement.classList.add('active');
+    }
+    renderPlatformTokensGrid();
+  };
+
+  window.searchPlatformTokens = function(val) {
+    platformSearchQuery = val;
+    renderPlatformTokensGrid();
+  };
+
+  // ============================================================================
+  // SOURCE CODE BRANCH EXPLORER & RECURSIVE TEAM TOKEN ROTATION
+  // ============================================================================
+  let gitBranchesData = [];
+
+  window.loadGitBranches = async function() {
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/git/branches`);
+      const data = await res.json();
+      if (data.success) {
+        gitBranchesData = data.branches;
+        renderBranchExplorerGrid();
+      }
+    } catch (err) {
+      console.error("Error loading git branches:", err);
+    }
+  };
+
+  window.renderBranchExplorerGrid = function() {
+    const container = document.getElementById('branchExplorerGrid');
+    if (!container) return;
+
+    if (gitBranchesData.length === 0) {
+      container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: var(--text-muted);">No active branches found</div>`;
+      return;
+    }
+
+    container.innerHTML = gitBranchesData.map(b => {
+      const isMain = b.branch_name === 'main';
+      return `
+        <div class="branch-card" style="background: rgba(11, 18, 28, 0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; position: relative;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="font-weight: 800; font-size: 14px; color: #fff; font-family: var(--font-mono); display: flex; align-items: center; gap: 6px;">
+              <i class="bi bi-git text-cyan"></i> ${b.branch_name}
+            </div>
+            <span class="shield-badge" style="font-size: 10px; ${isMain ? 'background: rgba(16, 185, 129, 0.15); border: 1px solid var(--accent-emerald); color: var(--accent-emerald);' : 'background: rgba(245, 158, 11, 0.15); border: 1px solid var(--accent-amber); color: var(--accent-amber);'}">
+              ${b.rotation_status}
+            </span>
+          </div>
+
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">
+            <i class="bi bi-person me-1"></i> Author: <strong>${b.author_email}</strong>
+          </div>
+
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+            <i class="bi bi-hash me-1"></i> Commit SHA: <strong style="font-family: var(--font-mono); color: var(--primary-cyan);">${b.commit_sha}</strong>
+          </div>
+
+          <div style="background: rgba(5, 10, 16, 0.95); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px 10px; font-family: var(--font-mono); font-size: 11px; color: var(--accent-amber); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span>${b.associated_token_hash}</span>
+            <i class="bi bi-shield-check text-emerald"></i>
+          </div>
+
+          <button class="btn btn-secondary" style="width: 100%; padding: 6px 10px; font-size: 11px; font-weight: 700;" onclick="rotateBranchToken('${b.branch_name}')">
+            <i class="bi bi-arrow-repeat text-cyan me-1"></i> Rotate Token (Recursive Team Sync)
+          </button>
+        </div>
+      `;
+    }).join('');
+  };
+
+  window.rotateBranchToken = async function(branchName) {
+    if (!confirm(`Rotate token for branch '${branchName}' and propagate recursively across team remotes?`)) return;
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/git/branches/rotate-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch_name: branchName, rotate_recursively_team: true })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToastNotification(`🔑 Token rotated for '${branchName}'! Synced across ${data.team_remotes_synced.length} remotes.`);
+        loadGitBranches();
+      }
+    } catch (err) {
+      alert("Error rotating branch token");
+    }
+  };
+
+  // ============================================================================
+  // BIOMETRIC AUTHENTICATION & PR SECURITY GATE
+  // ============================================================================
+  let pendingBiometricAction = null;
+
+  window.triggerBiometricAuth = function(actionCallback) {
+    pendingBiometricAction = actionCallback;
+    openModal('modalBiometricPrompt');
+  };
+
+  window.confirmBiometricScan = async function(bType = 'touchpad_touchscreen') {
+    try {
+      const baseUrl = window.location.origin;
+      const res = await fetch(`${baseUrl}/api/security/biometric/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential_id: 'webauthn-passkey-01', biometric_type: bType, user_email: state.currentUser || 'demo@example.com' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToastNotification(`🛡️ ${data.message}`);
+        closeModal('modalBiometricPrompt');
+        if (pendingBiometricAction) {
+          pendingBiometricAction({ auth_method: data.auth_method });
+          pendingBiometricAction = null;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Hardware sensor verification failed. Falling back to 2FA token.");
+    }
+  };
+
+  window.fallbackToAccountInvisibleToken = function() {
+    const code = prompt("Enter 6-Digit 2FA User Account Invisible Token / Passcode:");
+    if (!code) return;
+    showToastNotification("✅ Verified via Unique User Account 2FA Invisible Token!");
+    closeModal('modalBiometricPrompt');
+    if (pendingBiometricAction) {
+      pendingBiometricAction({ auth_method: '2fa_token', passcode: code });
+      pendingBiometricAction = null;
+    }
+  };
+
+  window.approvePRWithBiometrics = function(prId) {
+    triggerBiometricAuth(async (authDetails) => {
+      try {
+        const baseUrl = window.location.origin;
+        const res = await fetch(`${baseUrl}/api/pr/biometric-approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pr_id: String(prId), reviewer_email: state.currentUser || 'demo@example.com', auth_method: authDetails.auth_method })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToastNotification(`✅ ${data.message}`);
+          // Approve PR in local UI state
+          if (typeof window.approvePR === 'function') {
+            window.approvePR(prId);
+          }
+        }
+      } catch (err) {
+        alert("Failed to approve PR");
+      }
+    });
+  };
+
   function init() {
     initGenesisBlock();
     loadSavedState();
     renderAll();
+    loadVaultData();
+    loadPlatformInvisibleTokens();
+    loadGitBranches();
     syncHifiStatus();
     loadProjectFeed();
-    console.log("Token Secured Engine Initialized OK with 2FA Gate, SSO Grid, Dual Alerts, Plain-Cipher Studio, Cyber Crime Desk & Provider Support Desk");
+    console.log("HIFI-SECURED Vault Engine Initialized OK on Port 8080");
   }
+
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

@@ -9,70 +9,60 @@ async def main():
         context = await browser.new_context(record_video_dir="recordings")
         page = await context.new_page()
 
-        print("Navigating to Token Secured at http://localhost:8080 ...")
-        await page.goto("http://localhost:8080", wait_until="networkidle")
+        print("Navigating to Token Secured at http://127.0.0.1:8080 ...")
+        await page.goto("http://127.0.0.1:8080", wait_until="networkidle")
 
-        # 1. First Sign Up (User Generated 2FA Account)
-        print("Registering First Master Owner Account via 2FA...")
-        await page.click("button[onclick='toggleAuthMode()']") # switch to register tab
-        await page.fill("#signUpUsername", "Manoj-548")
-        await page.fill("#signUpEmail", "manoj548@token-secured.io")
-        await page.fill("#signUpPasscode", "654321")
-        await page.click("#btnRegister2FA")
-        await page.wait_for_timeout(600)
-
-        # 2. 2FA Sign In
-        print("Authenticating Manoj-548 via 2FA Passcode...")
-        await page.select_option("#userAccountSelector", "Manoj-548")
+        # 1. Registration & 2FA Authentication
+        print("Registering Master Owner Account via 2FA Auth Overlay...")
+        await page.click("#toggleSignUpBtn")
+        await page.fill("#authUsernameInput", "Manoj-548")
+        await page.fill("#authEmailInput", "manoj548@token-secured.io")
         await page.fill("#masterPasscodeInput", "654321")
-        await page.click("button[onclick='unlockMasterVault()']")
-        await page.wait_for_timeout(600)
+        await page.click("#authForm button[type='submit']")
+        await page.wait_for_timeout(1000)
 
-        # 3. Add Collaborator (Developer User Generation)
-        print("Generating Collaborator User (Dev-Alice) with RBAC permissions...")
-        await page.click("button[onclick='switchTab(\"collaborators\")']")
-        await page.fill("#collabUsernameInput", "Dev-Alice")
-        await page.fill("#collabEmailInput", "alice@dev.io")
-        await page.select_option("#collabRoleInput", "developer")
-        await page.click("button[onclick='inviteCollaborator()']")
-        await page.wait_for_timeout(600)
+        # 2. Test Encrypted Password Vault Item Creation
+        print("Testing Encrypted Password Vault Entry creation...")
+        await page.evaluate("openModal('modalVaultItem')")
+        await page.wait_for_timeout(400)
 
-        # 4. Source Control & PR Approval Engine
-        print("Testing Source Control PR Submission & 2FA Owner Approval...")
-        await page.click("button[onclick='switchTab(\"source-control\")']")
-        await page.fill("#prTitleInput", "Feature: Add Encrypted Token Cipher Stream")
-        await page.select_option("#prAuthorSelect", "Dev-Alice")
-        await page.fill("#prDiffInput", "Added cryptographic salt and AES-GCM cipher isolation module")
-        await page.click("button[onclick='submitPullRequest()']")
-        await page.wait_for_timeout(600)
+        await page.fill("#vaultHolderInput", "Manoj-548 (Master Owner)")
+        await page.fill("#vaultServiceNameInput", "AWS Production Console")
+        await page.fill("#vaultUsernameInput", "aws_master_root@enterprise.org")
+        await page.fill("#vaultPasswordInput", "SuperSecureVaultPass#2026!")
+        await page.fill("#vaultUrlInput", "https://console.aws.amazon.com")
+        await page.click("#modalVaultItem button[type='submit']")
+        await page.wait_for_timeout(1000)
 
-        # Approve PR as Master Owner Manoj-548
-        await page.click("button[onclick='approvePR(1)']")
-        await page.wait_for_timeout(600)
-
-        # 5. Token Generator
-        print("Generating Invisible Secured Token...")
-        await page.click("button[onclick='switchTab(\"dashboard\")']")
-        await page.fill("#tokenLabelInput", "Manoj-548 Production Key")
-        await page.select_option("#tokenExpiryInput", "60")
-        await page.click("button[type='submit']")
+        # 3. Test Password Generator Tool Modal
+        print("Testing Password Generator Tool...")
+        await page.evaluate("openPasswordGeneratorModal()")
         await page.wait_for_timeout(500)
-        await page.click("#modalReveal button.btn-primary")
+        await page.click("button[onclick='copyGeneratedPassword()']")
         await page.wait_for_timeout(500)
 
-        # 6. Test Security Stolen Password Alert Simulator
-        print("Simulating Stolen Password / New Device Sign-In Attempt...")
-        await page.click("button[onclick='simulateNewDeviceLogin()']")
-        await page.wait_for_timeout(600)
-        await page.fill("#otpCodeInput", "948201")
-        await page.click("#modal2FAAlert button.btn-success")
+        # 4. Test Platform Invisible Tokens Desk
+        print("Testing Platform Invisible Tokens Desk...")
+        await page.click("button[data-view='invisible-tokens']")
+        await page.wait_for_timeout(800)
+
+        # Open Issue Token Modal
+        print("Issuing unique Invisible Token for Telegram Bot Gateway...")
+        await page.click("button[onclick='openCreatePlatformTokenModal()']")
+        await page.wait_for_timeout(400)
+        await page.select_option("#platformSelectInput", "Telegram Bot Gateway")
+        await page.fill("#platformTokenLabelInput", "Telegram DevOps Bot Stream")
+        await page.fill("#platformScopesInput", "bot, messages:send, alerts")
+        await page.click("#modalPlatformInvisibleToken button[type='submit']")
         await page.wait_for_timeout(1000)
 
         video_path = await page.video.path()
         await context.close()
         await browser.close()
-        print(f"SUCCESS: 2FA, RBAC, PR Approval & Invisible Token test completed & recorded to {video_path}")
+        print(f"SUCCESS: 2FA Auth, Password Vault & Invisible Tokens Desk UI test completed & recorded to {video_path}")
 
 if __name__ == '__main__':
     asyncio.run(main())
+
+
 

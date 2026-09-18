@@ -151,3 +151,69 @@ class Notification(Base):
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="queued", nullable=False)
     delivery_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+
+class VaultItem(Base):
+    __tablename__ = "vault_items"
+
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    account_holder_name: Mapped[str] = mapped_column(String(255), default="Primary Account Holder", nullable=False)
+    service_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    category: Mapped[str] = mapped_column(String(100), default="General", nullable=False)
+    login_email_username: Mapped[str] = mapped_column(String(255), nullable=False)
+    encrypted_password: Mapped[str] = mapped_column(Text, nullable=False)
+    website_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notes_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    security_score: Mapped[int] = mapped_column(Integer, default=80, nullable=False)
+    is_favorite: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_shared_with_specific_user: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+
+class InvisibleToken(Base):
+    __tablename__ = "invisible_tokens"
+
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    platform_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    platform_icon: Mapped[str] = mapped_column(String(50), default="bi-shield-lock", nullable=False)
+    token_label: Mapped[str] = mapped_column(String(255), nullable=False)
+    token_secret_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    zero_knowledge_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    scopes: Mapped[str] = mapped_column(Text, default="read:write", nullable=False)
+    expiry_minutes: Mapped[int] = mapped_column(Integer, default=1440, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default="ACTIVE & ENCRYPTED", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class BranchToken(Base):
+    __tablename__ = "branch_tokens"
+
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    branch_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    commit_sha: Mapped[str] = mapped_column(String(80), nullable=False)
+    author_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    associated_token_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    rotation_status: Mapped[str] = mapped_column(String(50), default="SYNCED & PROTECTED", nullable=False)
+    last_rotated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+
+class BootstrapFailureLog(Base):
+    __tablename__ = "bootstrap_failure_logs"
+
+    id: Mapped[PyUUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    failure_type: Mapped[str] = mapped_column(String(100), nullable=False)  # "BIOMETRIC_FAIL", "TOKEN_MISMATCH", "PR_AUTH_FAIL"
+    sanitized_error_code: Mapped[str] = mapped_column(String(100), nullable=False) # Zero-leak code e.g. "ERR-BOOTSTRAP-401-OBFUSCATED"
+    platform_or_branch: Mapped[str] = mapped_column(String(150), nullable=False)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    is_resolved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+
+
+
