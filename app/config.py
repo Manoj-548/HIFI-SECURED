@@ -9,10 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 class Settings:
     app_name: str = "Token Secured"
     environment: str = os.getenv("APP_ENV", "development")
-    database_url: str = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/db/token_secured.db")
+    port: int = int(os.getenv("PORT", "8080"))
+    database_url: str = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/db/token_secured.db").replace("postgres://", "postgresql://")
     google_client_id: str = os.getenv("GOOGLE_CLIENT_ID", "")
     google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
-    google_redirect_uri: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8001/api/auth/google/callback")
+    google_redirect_uri: str = os.getenv("GOOGLE_REDIRECT_URI", "/api/auth/google/callback")
     jwt_secret: str = os.getenv("JWT_SECRET", "super-secret-dev-key-change-me")
     session_cookie_name: str = "token_secured_session"
     session_lifetime_minutes: int = int(os.getenv("SESSION_LIFETIME_MINUTES", "15"))

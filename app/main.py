@@ -3,6 +3,7 @@ import os
 import subprocess
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -47,6 +48,14 @@ MONTHLY_PLAN_PRICE_INR = 200
 MONTHLY_PLAN_DAYS = 30
 
 app = FastAPI(title="HIFI-SECURED Password Vault Engine", version="2.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 
@@ -311,17 +320,17 @@ REPOS_SPEC = [
         "port": 3000,
         "path": os.path.join(SCRATCH_DIR, "hifi-repo"),
         "account_primary": "Manoj-548 / HI-FI-ACTIVE",
-        "account_backup": "Manoj-88 / HI-FI-ACTIVE-BACKUP",
+        "account_backup": "Manoj-548 / HI-FI-ACTIVE",
         "role": "Production Live Build",
     },
     {
-        "id": "hifi-exp-8000",
-        "name": "HI-FI Experimentation Build",
+        "id": "hifi-backup-8000",
+        "name": "HI-FI Active Backup Build",
         "port": 8000,
         "path": os.path.join(SCRATCH_DIR, "hifi-repo"),
-        "account_primary": "Manoj-548 / HI-FI-BACKUP-EXPERIMENTATION-1",
-        "account_backup": "Manoj-88 / HI-FI-BACKUP-EXPERIMENTATION-2",
-        "role": "Experimental Build (Integrated Vault & Music)",
+        "account_primary": "Manoj-88 / HI-FI-ACTIVE-BACKUP",
+        "account_backup": "Manoj-88 / HI-FI-ACTIVE-BACKUP",
+        "role": "Active Backup Build (Port 8000)",
     },
     {
         "id": "hifi-secured-8080",
@@ -1303,5 +1312,5 @@ if os.path.exists(os.path.join(root_dir, "index.html")):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8080, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.port, reload=True)
 
